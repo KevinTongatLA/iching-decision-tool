@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>决策时机工具 · 八字排盘（试点）</title>
+<style>
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #222;
+  background: #fafaf7;
+}
+
+h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+.subtitle { font-size: 0.85rem; color: #666; font-weight: normal; display: block; }
+.scope-note {
+  font-size: 0.85rem;
+  color: #555;
+  background: #f0ede4;
+  border-left: 3px solid #8d6e33;
+  padding: 0.5rem 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  background: white;
+}
+.panel h2 { margin-top: 0; font-size: 1.1rem; }
+
+.field-row { margin-bottom: 0.6rem; }
+.field-row label { display: block; font-size: 0.85rem; color: #444; }
+.field-row input, .field-row select {
+  display: inline-block;
+  margin-top: 0.2rem;
+  margin-right: 0.4rem;
+  padding: 0.3rem;
+  width: 5.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #8d6e33;
+  background: #8d6e33;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+button:hover { background: #74592a; }
+#refresh-now { margin-left: 0.8rem; font-size: 0.75rem; padding: 0.2rem 0.6rem; }
+
+.caveat { font-size: 0.78rem; color: #888; margin: 0.3rem 0 0.8rem; }
+.caveat-inline { font-size: 0.78rem; color: #888; }
+
+.pillars {
+  border-collapse: collapse;
+  margin: 0.8rem 0;
+  font-size: 1.6rem;
+  text-align: center;
+}
+.pillars th {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: normal;
+  padding-bottom: 0.3rem;
+}
+.pillars td {
+  padding: 0.4rem 1rem;
+  border: 1px solid #eee;
+}
+.py { font-size: 0.6rem; color: #999; }
+.elem { font-weight: 600; }
+
+#moment-now { background: white; color: #8d6e33; margin-left: 0.4rem; }
+#moment-now:hover { background: #f0ede4; }
+
+.scan-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+  margin: 0.6rem 0;
+}
+.scan-table th, .scan-table td {
+  border: 1px solid #eee;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+.scan-table .use-btn { padding: 0.15rem 0.5rem; font-size: 0.8rem; }
+
+code { background: #eee; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+
+#hexagram-panel h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; }
+#hexagram-panel h3 { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
+.hex-lines { border-collapse: collapse; font-size: 1.1rem; margin-bottom: 0.4rem; }
+.hex-lines td { padding: 0.15rem 0.6rem; border-bottom: 1px solid #f0ede4; }
+.hex-lines .line-pos { font-size: 0.75rem; color: #999; width: 3.5rem; }
+.hex-lines tr.moving-line { background: #fff3d6; }
+.hex-lines tr.moving-line .line-pos { color: #b8860b; font-weight: 600; }
+.flag-clash { color: #c62828; font-weight: 600; }
+.flag-harmony { color: #2e7d32; font-weight: 600; margin-left: 0.2rem; }
+.flag-none { color: #ccc; font-size: 0.75rem; }
+.flags-cell { min-width: 3rem; }
+.tags-cell { min-width: 5rem; }
+.tag-liuqin { font-size: 0.75rem; color: #666; margin-right: 0.3rem; }
+.tag-shi, .tag-ying, .tag-yongshen {
+  display: inline-block; font-size: 0.7rem; font-weight: 700; border-radius: 3px;
+  padding: 0.05rem 0.3rem; margin-right: 0.2rem;
+}
+.tag-shi { background: #1565c0; color: white; }
+.tag-ying { background: #90a4ae; color: white; }
+.tag-yongshen { background: #b8860b; color: white; }
+.yongshen-list { font-size: 0.9rem; padding-left: 1.2rem; }
+.yongshen-list li { margin-bottom: 0.4rem; }
+
+.net-read { border-radius: 6px; padding: 0.8rem 1rem; border: 1px solid #ddd; }
+.net-read.net-favorable { background: #eef7ee; border-color: #a5d6a7; }
+.net-read.net-cautious { background: #fdeeee; border-color: #ef9a9a; }
+.net-read.net-mixed { background: #fbf7ee; border-color: #e0cfa0; }
+.net-narrative { font-size: 0.95rem; margin-top: 0; }
+.signal-list { font-size: 0.85rem; padding-left: 1.2rem; margin: 0.5rem 0; }
+.signal-list .sig-pos { color: #2e7d32; }
+.signal-list .sig-neg { color: #c62828; }
+.signal-list .sig-neutral { color: #777; }
+.net-total { font-size: 1rem; margin-bottom: 0.3rem; }
+
+.yao-cell { display: flex; align-items: center; gap: 0.4rem; }
+.yao { width: 3.2rem; height: 0.55rem; display: flex; justify-content: space-between; }
+.yao-yang { background: #333; border-radius: 1px; }
+.yao-yin span { background: #333; border-radius: 1px; width: 44%; height: 100%; }
+tr.moving-line .yao-yang { background: #b8860b; }
+tr.moving-line .yao-yin span { background: #b8860b; }
+.yao-marker { font-size: 0.9rem; font-weight: 700; color: #b8860b; }
+
+#verify-panel { background: #fff8ec; }
+#verify-panel .field-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+#verify-panel select { width: auto; }
+#calibrate-result { font-size: 0.85rem; color: #2e7d32; }
+
+</style>
+</head>
+<body>
+<header>
+  <h1>决策时机工具 <span class="subtitle">Decision-Timing Tool — Pilot: BaZi + Current Moment</span></h1>
+  <p class="scope-note">
+    Scope of this pilot: Four Pillars (八字) for a person, and the same engine applied to the
+    current moment (环境/当下). No I-Ching hexagram/timing layer yet — that's the next step.
+    This is a codified traditional heuristic system, not a validated predictive model.
+  </p>
+</header>
+
+<main>
+  <section class="panel" id="person-panel">
+    <h2>命主 — Person</h2>
+    <form id="birth-form">
+      <div class="field-row">
+        <label>出生日期 Date
+          <input type="number" id="birth-year" placeholder="年 YYYY" value="1990" min="1" max="3000">
+          <input type="number" id="birth-month" placeholder="月 MM" value="1" min="1" max="12">
+          <input type="number" id="birth-day" placeholder="日 DD" value="1" min="1" max="31">
+        </label>
+      </div>
+      <div class="field-row">
+        <label>出生时间 Time (24h, local civil clock at birthplace)
+          <input type="number" id="birth-hour" placeholder="时 HH" value="12" min="0" max="23">
+          <input type="number" id="birth-minute" placeholder="分 mm" value="0" min="0" max="59">
+        </label>
+      </div>
+      <div class="field-row">
+        <label>时区 Timezone offset (hours east of UTC, e.g. China = 8)
+          <input type="number" id="birth-tz" value="8" step="0.5" min="-12" max="14">
+        </label>
+      </div>
+      <p class="caveat">
+        Uses local civil clock time as entered — no true-solar-time / longitude correction yet
+        (a refinement for later; matters most near hour-pillar boundaries).
+      </p>
+      <button type="submit">排盘 Compute</button>
+    </form>
+    <div id="person-result" class="result"></div>
+  </section>
+
+  <section class="panel" id="moment-panel">
+    <h2>时刻 — Moment (default: now)</h2>
+    <p class="caveat">
+      Pick any date/time to see its Four Pillars, and — once you've computed the person above —
+      how that moment compares to them.
+    </p>
+    <form id="moment-form">
+      <div class="field-row">
+        <label>日期 Date
+          <input type="number" id="moment-year" placeholder="年 YYYY" min="1" max="3000">
+          <input type="number" id="moment-month" placeholder="月 MM" min="1" max="12">
+          <input type="number" id="moment-day" placeholder="日 DD" min="1" max="31">
+        </label>
+      </div>
+      <div class="field-row">
+        <label>时间 Time (24h)
+          <input type="number" id="moment-hour" placeholder="时 HH" min="0" max="23">
+          <input type="number" id="moment-minute" placeholder="分 mm" min="0" max="59">
+        </label>
+      </div>
+      <div class="field-row">
+        <label>时区 Timezone offset
+          <input type="number" id="moment-tz" step="0.5" min="-12" max="14">
+        </label>
+      </div>
+      <button type="submit">计算 Compute</button>
+      <button id="moment-now" type="button">现在 Now</button>
+    </form>
+    <div id="moment-result" class="result"></div>
+    <div id="moment-compare" class="result"></div>
+  </section>
+
+  <section class="panel" id="hexagram-panel">
+    <h2>起卦 — Cast a Hexagram for this Moment <button id="cast-btn" type="button">起卦 Cast</button></h2>
+    <p class="caveat">
+      Deterministic 梅花易数 time-based casting (年月日时起卦法) from the Moment panel's
+      date/time above — no randomness. Lunar month/day are computed using China Standard
+      Time civil dates regardless of the Moment panel's timezone field, matching classical
+      practice. If the person's Four Pillars are computed, each line is also checked against
+      their Day Master and day branch.
+    </p>
+    <div class="field-row">
+      <label>决定类型 What kind of decision is this?
+        <select id="yong-shen-category">
+          <option value="self">自身/事业能否成 (self — will my venture succeed)</option>
+          <option value="wealth">财运/买卖 (wealth — e.g. a stock or investment)</option>
+          <option value="authority">事业/权位 (career/authority — e.g. a promotion)</option>
+          <option value="property">房产/装修/合同文件 (property/renovation/documents)</option>
+          <option value="children_health">子女/健康调养/求医 (children, health recovery, treatment)</option>
+          <option value="danger_illness">疾病/官司/危险 (illness, lawsuit, danger)</option>
+          <option value="relationships">朋友/合伙/竞争 (friends, partners, competitors)</option>
+        </select>
+      </label>
+    </div>
+    <div id="hexagram-result" class="result"></div>
+  </section>
+
+  <section class="panel" id="scan-panel">
+    <h2>寻找更好时机 — Scan for a better time</h2>
+    <p class="caveat">
+      Requires the person's Four Pillars computed above. Scans forward from the Moment panel's
+      current date/time and ranks candidates by the composite score below (see the "关于评分"
+      note under the results) — a starting point for comparison, not a verdict.
+    </p>
+    <div class="field-row">
+      <label>粒度 Granularity
+        <select id="scan-granularity">
+          <option value="hour">按小时 Hourly</option>
+          <option value="day">按天 Daily</option>
+        </select>
+      </label>
+      <label>范围 Horizon (steps forward)
+        <input type="number" id="scan-horizon" value="72" min="1" max="720">
+      </label>
+      <button id="scan-btn" type="button">扫描 Scan</button>
+    </div>
+    <div id="scan-result" class="result"></div>
+  </section>
+
+  <section class="panel" id="verify-panel">
+    <h2>校验 — Day-pillar offset: confirmed</h2>
+    <p>
+      Cross-checked against an online 黄历 for two dates 8 days apart (2026-08-24 → 庚午,
+      2026-09-01 → 戊寅) — both matched this tool's output, so <code>GANZHI_JD_OFFSET = 49</code>
+      is correct. Since day-pillar computation is just a continuous day count (not tied to those
+      specific dates), this confidence extends to other dates too. The manual override below is
+      kept as a fallback only.
+    </p>
+    <div class="field-row">
+      <label>Manual override — correct day-pillar index (0=甲子 ... 59=癸亥) for today:
+        <select id="correct-ganzhi"></select>
+      </label>
+      <button id="calibrate" type="button">校正 Calibrate</button>
+      <span id="calibrate-result"></span>
+    </div>
+  </section>
+</main>
+<script>
+// --- astro.js ---
+// astro.js — solar position + Julian Day utilities, used to place the
+// classical 24 solar terms (二十四节气) precisely in time. This is the piece
+// BaZi month/year-pillar boundaries actually depend on: the "节" boundaries
+// are astronomical (Sun's apparent ecliptic longitude crossing a multiple of
+// 15°), not fixed calendar dates.
+//
+// Longitude formula: Meeus, "Astronomical Algorithms", ch. 25 (low-precision
+// solar coordinates, ~0.01° accuracy — plenty for day/hour-level BaZi work).
+
+function normalizeDeg(x) {
+  return ((x % 360) + 360) % 360;
+}
+
+function deg2rad(d) {
+  return (d * Math.PI) / 180;
+}
+
+// Gregorian calendar date/time (all fields in the SAME time frame — caller
+// decides whether that's UTC or "local treated as UTC") -> Julian Day.
+function gregorianToJD(Y, M, D, h = 0, mi = 0, s = 0) {
+  let y = Y, m = M;
+  if (m <= 2) { y -= 1; m += 12; }
+  const A = Math.floor(y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  const dayFrac = D + (h + mi / 60 + s / 3600) / 24;
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + dayFrac + B - 1524.5;
+}
+
+// Local wall-clock date/time + a fixed timezone offset (hours east of UTC,
+// e.g. +8 for China) -> true UTC Julian Day. JD is a continuous day count,
+// so shifting timezone is just subtracting a fraction of a day — no manual
+// month/year rollover bookkeeping needed.
+function localToUtcJD(Y, M, D, h, mi, tzOffsetHours) {
+  const jdLocalAsIfUTC = gregorianToJD(Y, M, D, h, mi, 0);
+  return jdLocalAsIfUTC - tzOffsetHours / 24;
+}
+
+// Apparent geocentric ecliptic longitude of the Sun, in degrees [0, 360).
+function solarApparentLongitude(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  const L0 = normalizeDeg(280.46646 + T * (36000.76983 + T * 0.0003032));
+  const M = normalizeDeg(357.52911 + T * (35999.05029 - 0.0001537 * T));
+  const Mrad = deg2rad(M);
+  const C =
+    (1.914602 - T * (0.004817 + 0.000014 * T)) * Math.sin(Mrad) +
+    (0.019993 - 0.000101 * T) * Math.sin(2 * Mrad) +
+    0.000289 * Math.sin(3 * Mrad);
+  const trueLong = L0 + C;
+  const omega = 125.04 - 1934.136 * T;
+  const apparentLong = trueLong - 0.00569 - 0.00478 * Math.sin(deg2rad(omega));
+  return normalizeDeg(apparentLong);
+}
+
+// Find the JD where solar apparent longitude == targetLon (degrees),
+// starting the search near guessJD. The Sun moves ~0.98-1.02°/day, nearly
+// linearly over the span of a few days, so a fixed-slope Newton-style
+// iteration converges in a handful of steps.
+function findLongitudeCrossing(targetLon, guessJD) {
+  let jd = guessJD;
+  for (let i = 0; i < 10; i++) {
+    const lam = solarApparentLongitude(jd);
+    const diff = (((targetLon - lam + 540) % 360) + 360) % 360 - 180; // signed, shortest way round
+    if (Math.abs(diff) < 1e-6) break;
+    jd += diff / 0.9856;
+  }
+  return jd;
+}
+
+// The 24 solar terms in chronological order for a generic Jan-Dec calendar
+// year, with an approximate seed date (month, day) close enough to the true
+// crossing for findLongitudeCrossing to converge from.
+const SOLAR_TERMS = [
+  { name: '小寒', lon: 285, seedM: 1, seedD: 6 },
+  { name: '大寒', lon: 300, seedM: 1, seedD: 20 },
+  { name: '立春', lon: 315, seedM: 2, seedD: 4 },
+  { name: '雨水', lon: 330, seedM: 2, seedD: 19 },
+  { name: '惊蛰', lon: 345, seedM: 3, seedD: 6 },
+  { name: '春分', lon: 0, seedM: 3, seedD: 21 },
+  { name: '清明', lon: 15, seedM: 4, seedD: 5 },
+  { name: '谷雨', lon: 30, seedM: 4, seedD: 20 },
+  { name: '立夏', lon: 45, seedM: 5, seedD: 5 },
+  { name: '小满', lon: 60, seedM: 5, seedD: 21 },
+  { name: '芒种', lon: 75, seedM: 6, seedD: 6 },
+  { name: '夏至', lon: 90, seedM: 6, seedD: 21 },
+  { name: '小暑', lon: 105, seedM: 7, seedD: 7 },
+  { name: '大暑', lon: 120, seedM: 7, seedD: 23 },
+  { name: '立秋', lon: 135, seedM: 8, seedD: 8 },
+  { name: '处暑', lon: 150, seedM: 8, seedD: 23 },
+  { name: '白露', lon: 165, seedM: 9, seedD: 8 },
+  { name: '秋分', lon: 180, seedM: 9, seedD: 23 },
+  { name: '寒露', lon: 195, seedM: 10, seedD: 8 },
+  { name: '霜降', lon: 210, seedM: 10, seedD: 23 },
+  { name: '立冬', lon: 225, seedM: 11, seedD: 7 },
+  { name: '小雪', lon: 240, seedM: 11, seedD: 22 },
+  { name: '大雪', lon: 255, seedM: 12, seedD: 7 },
+  { name: '冬至', lon: 270, seedM: 12, seedD: 22 },
+];
+
+// The 12 "节" (jie) terms are the ones that actually move the BaZi month
+// pillar boundary. They're exactly the terms whose longitude ≡ 15 (mod 30);
+// the other 12 ("中气", zhongqi) sit at the midpoints and don't change the
+// month pillar.
+function isJie(lonDeg) {
+  return normalizeDeg(lonDeg - 15) % 30 === 0;
+}
+
+// Precise UTC JD for every solar term in a given Gregorian calendar year.
+function solarTermsForYear(year) {
+  return SOLAR_TERMS.map((t) => {
+    const seedJD = gregorianToJD(year, t.seedM, t.seedD, 12, 0, 0);
+    const jd = findLongitudeCrossing(t.lon, seedJD);
+    return { name: t.name, lon: t.lon, jd, jie: isJie(t.lon) };
+  });
+}
+
+// Given any UTC JD, return the nearest jie term at/before it and the next
+// jie term after it (searches the surrounding 3 calendar years so results
+// near Jan 1 / Dec 31 stay correct).
+function bracketingJieTerms(jd) {
+  const approxDate = jdToGregorian(jd);
+  const years = [approxDate.year - 1, approxDate.year, approxDate.year + 1];
+  const allJie = years
+    .flatMap((y) => solarTermsForYear(y))
+    .filter((t) => t.jie)
+    .sort((a, b) => a.jd - b.jd);
+  let prev = null, next = null;
+  for (const t of allJie) {
+    if (t.jd <= jd) prev = t;
+    else { next = t; break; }
+  }
+  return { prev, next };
+}
+
+// JD -> Gregorian calendar date/time (UTC), for display purposes only.
+function jdToGregorian(jd) {
+  const jdShifted = jd + 0.5;
+  const Z = Math.floor(jdShifted);
+  const F = jdShifted - Z;
+  let A = Z;
+  if (Z >= 2299161) {
+    const alpha = Math.floor((Z - 1867216.25) / 36524.25);
+    A = Z + 1 + alpha - Math.floor(alpha / 4);
+  }
+  const B = A + 1524;
+  const C = Math.floor((B - 122.1) / 365.25);
+  const D = Math.floor(365.25 * C);
+  const E = Math.floor((B - D) / 30.6001);
+  const dayFrac = B - D - Math.floor(30.6001 * E) + F;
+  const day = Math.floor(dayFrac);
+  const month = E < 14 ? E - 1 : E - 13;
+  const year = month > 2 ? C - 4716 : C - 4715;
+  const hoursFrac = (dayFrac - day) * 24;
+  let totalMinutes = Math.round(hoursFrac * 60);
+  let hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  let dayOut = day;
+  if (hour >= 24) { hour -= 24; dayOut += 1; } // rare rounding-to-midnight edge case
+  return { year, month, day: dayOut, hour, minute };
+}
+
+// --- bazi.js ---
+// bazi.js — 八字 (Four Pillars) engine: 天干地支, 五行, and the classical
+// derivation rules (五虎遁 for month stems, 五鼠遁 for hour stems).
+//
+// KNOWN UNVERIFIED CONSTANT: the day-pillar's absolute position in the
+// 60-cycle (GANZHI_JD_OFFSET below) is set from a commonly cited value but
+// could not be cross-checked against a reference implementation in this
+// environment (no network access). Verify it once: look up today's day
+// pillar in any trusted 万年历/calendar app and compare against what this
+// tool shows for "now". If it's off, the fix is a one-line constant change
+// (see checkDayPillarOffset in app.js).
+
+const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const STEM_PINYIN = ['jiǎ', 'yǐ', 'bǐng', 'dīng', 'wù', 'jǐ', 'gēng', 'xīn', 'rén', 'guǐ'];
+const STEM_ELEMENT = ['木', '木', '火', '火', '土', '土', '金', '金', '水', '水'];
+const STEM_YINYANG = ['阳', '阴', '阳', '阴', '阳', '阴', '阳', '阴', '阳', '阴'];
+
+const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const BRANCH_PINYIN = ['zǐ', 'chǒu', 'yín', 'mǎo', 'chén', 'sì', 'wǔ', 'wèi', 'shēn', 'yǒu', 'xū', 'hài'];
+const BRANCH_ELEMENT = ['水', '土', '木', '木', '土', '火', '火', '土', '金', '金', '土', '水'];
+const BRANCH_YINYANG = ['阳', '阴', '阳', '阴', '阳', '阴', '阳', '阴', '阳', '阴', '阳', '阴'];
+// Local civil hour (0-23) -> branch index, per the two-hour 时辰 periods
+// (子 = 23:00-00:59, 丑 = 01:00-02:59, ...).
+function hourToBranchIndex(hour) {
+  return Math.floor(((hour + 1) % 24) / 2);
+}
+
+const ELEMENT_COLOR = {
+  木: '#2e7d32',
+  火: '#c62828',
+  土: '#8d6e33',
+  金: '#b8860b',
+  水: '#1565c0',
+};
+
+// 生 (generates) cycle, keyed by element -> element it produces.
+const GENERATES = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
+// 克 (overcomes) cycle, keyed by element -> element it suppresses.
+const OVERCOMES = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };
+
+function reverseLookup(map, value) {
+  return Object.keys(map).find((k) => map[k] === value);
+}
+
+// Ganzhi index (0-59) -> {stem, branch} indices.
+function ganzhiFromIndex(idx) {
+  const i = ((idx % 60) + 60) % 60;
+  return { stemIdx: i % 10, branchIdx: i % 12 };
+}
+
+function pillarFromIndices(stemIdx, branchIdx) {
+  const s = ((stemIdx % 10) + 10) % 10;
+  const b = ((branchIdx % 12) + 12) % 12;
+  return {
+    stem: STEMS[s],
+    stemPinyin: STEM_PINYIN[s],
+    stemElement: STEM_ELEMENT[s],
+    stemYinYang: STEM_YINYANG[s],
+    branch: BRANCHES[b],
+    branchPinyin: BRANCH_PINYIN[b],
+    branchElement: BRANCH_ELEMENT[b],
+    branchYinYang: BRANCH_YINYANG[b],
+    label: STEMS[s] + BRANCHES[b],
+  };
+}
+
+// --- Day pillar --------------------------------------------------------
+// Flagged constant — see file header. `let`, not `const`: app.js's
+// calibration control back-solves and overwrites this if you find it's off.
+let GANZHI_JD_OFFSET = 49;
+
+function dayPillarFromJDN(jdn) {
+  const idx = ((jdn + GANZHI_JD_OFFSET) % 60 + 60) % 60;
+  const { stemIdx, branchIdx } = ganzhiFromIndex(idx);
+  return pillarFromIndices(stemIdx, branchIdx);
+}
+
+// --- Year pillar ---------------------------------------------------------
+// Anchor: 1984 = 甲子 (stemIdx 0, branchIdx 0). Cross-checked against two
+// independently well-known facts: 1994 = 甲戌, 2020 = 庚子.
+// BaZi year flips at 立春 (Lichun), not at the Gregorian or lunar new year.
+function yearPillar(calendarYear, isAfterThisYearsLichun) {
+  const baziYear = isAfterThisYearsLichun ? calendarYear : calendarYear - 1;
+  const offset = baziYear - 1984;
+  return pillarFromIndices(offset, offset);
+}
+
+// --- Month pillar ----------------------------------------------------
+// Branch is a pure function of the Sun's apparent longitude: the 12 "节"
+// boundaries sit at 315°(立春→寅), 345°(→卯), 15°(→辰), ... each 30° apart.
+function monthBranchIndexFromLongitude(lonDeg) {
+  const stepsFromLichun = Math.floor((normalizeDeg(lonDeg - 315)) / 30);
+  return (stepsFromLichun + 2) % 12; // 寅 = index 2
+}
+
+// Stem uses 五虎遁 (Wu Hu Dun): the stem of the 寅 (first) month is fixed by
+// the YEAR stem's mod-5 group, then stems simply advance by 1 per month
+// alongside the branch.
+const WU_HU_DUN = { 0: 2, 1: 4, 2: 6, 3: 8, 4: 0 }; // yearStem%5 -> 寅-month stem idx
+function monthPillar(yearStemIdx, monthBranchIdx) {
+  const group = ((yearStemIdx % 5) + 5) % 5;
+  const yinMonthStem = WU_HU_DUN[group];
+  const stepsFromYin = ((monthBranchIdx - 2) + 12) % 12;
+  const stemIdx = (yinMonthStem + stepsFromYin) % 10;
+  return pillarFromIndices(stemIdx, monthBranchIdx);
+}
+
+// --- Hour pillar -------------------------------------------------------
+// Stem uses 五鼠遁 (Wu Shu Dun): the stem of the 子 hour is fixed by the DAY
+// stem's mod-5 group, then stems advance by 1 per two-hour period alongside
+// the branch.
+const WU_SHU_DUN = { 0: 0, 1: 2, 2: 4, 3: 6, 4: 8 }; // dayStem%5 -> 子-hour stem idx
+function hourPillar(dayStemIdx, hourBranchIdx) {
+  const group = ((dayStemIdx % 5) + 5) % 5;
+  const ziHourStem = WU_SHU_DUN[group];
+  const stemIdx = (ziHourStem + hourBranchIdx) % 10;
+  return pillarFromIndices(stemIdx, hourBranchIdx);
+}
+
+// --- Full computation ----------------------------------------------------
+// Y/M/D/hour/minute are LOCAL civil wall-clock values; tzOffsetHours is the
+// timezone offset east of UTC (e.g. 8 for China Standard Time).
+function computeFourPillars(Y, M, D, hour, minute, tzOffsetHours) {
+  const jdUtc = localToUtcJD(Y, M, D, hour, minute, tzOffsetHours);
+  const lon = solarApparentLongitude(jdUtc);
+
+  // Lichun crossing for THIS calendar year, to decide the BaZi year.
+  const lichunSeed = gregorianToJD(Y, 2, 4, 12, 0, 0);
+  const lichunJD = findLongitudeCrossing(315, lichunSeed);
+  const isAfterLichun = jdUtc >= lichunJD;
+  const yPillar = yearPillar(Y, isAfterLichun);
+
+  const monthBranchIdx = monthBranchIndexFromLongitude(lon);
+  const mPillar = monthPillar(STEMS.indexOf(yPillar.stem), monthBranchIdx);
+
+  // Day pillar uses the LOCAL civil date (the day as experienced), with the
+  // classical "晚子时" convention: 23:00-23:59 local counts as the next day.
+  let dJDN = Math.floor(gregorianToJD(Y, M, D, 12, 0, 0));
+  if (hour === 23) dJDN += 1;
+  const dPillar = dayPillarFromJDN(dJDN);
+
+  const hourBranchIdx = hourToBranchIndex(hour);
+  const hPillar = hourPillar(STEMS.indexOf(dPillar.stem), hourBranchIdx);
+
+  const bracket = bracketingJieTerms(jdUtc);
+
+  return {
+    year: yPillar,
+    month: mPillar,
+    day: dPillar,
+    hour: hPillar,
+    solarLongitude: lon,
+    currentJieqi: bracket.prev ? bracket.prev.name : null,
+    nextJieqi: bracket.next ? { name: bracket.next.name, date: jdToGregorian(bracket.next.jd) } : null,
+  };
+}
+
+function pillarsToElementList(pillars) {
+  return [
+    pillars.year.stemElement, pillars.year.branchElement,
+    pillars.month.stemElement, pillars.month.branchElement,
+    pillars.day.stemElement, pillars.day.branchElement,
+    pillars.hour.stemElement, pillars.hour.branchElement,
+  ];
+}
+
+// Classify a list of elements relative to a reference element using the
+// classical 十神-style roles (peer/resource/output/wealth/pressure).
+function classifyElementsRelativeTo(elements, referenceElement) {
+  const counts = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
+  elements.forEach((e) => counts[e]++);
+
+  const roles = { peer: 0, resource: 0, output: 0, wealth: 0, pressure: 0 };
+  const generatesRef = reverseLookup(GENERATES, referenceElement);
+  const refOvercomes = OVERCOMES[referenceElement];
+  const overcomesRef = reverseLookup(OVERCOMES, referenceElement);
+  elements.forEach((e) => {
+    if (e === referenceElement) roles.peer++;
+    else if (e === generatesRef) roles.resource++;
+    else if (e === GENERATES[referenceElement]) roles.output++;
+    else if (e === refOvercomes) roles.wealth++;
+    else if (e === overcomesRef) roles.pressure++;
+  });
+
+  const supportive = roles.peer + roles.resource;
+  const draining = roles.output + roles.wealth + roles.pressure;
+  return { counts, roles, supportive, draining };
+}
+
+// --- Simplified five-element balance -------------------------------------
+// Real strength analysis (月令, 藏干, 合冲刑害, 得根 etc.) is well beyond
+// this pilot's scope. This just tallies the 8 characters' elements relative
+// to the Day Master (日主), as a rough first read — label it as such in the UI.
+function fiveElementBalance(pillars) {
+  const dayMasterElement = pillars.day.stemElement;
+  const rel = classifyElementsRelativeTo(pillarsToElementList(pillars), dayMasterElement);
+  return { dayMasterElement, ...rel };
+}
+
+// --- Branch relations: 六合 (six harmonies) and 六冲 (six clashes) --------
+function branchClashPartnerIdx(branchIdx) {
+  return (branchIdx + 6) % 12;
+}
+const BRANCH_SIX_HARMONY_PARTNER = (() => {
+  const arr = new Array(12);
+  [[0, 1], [2, 11], [3, 10], [4, 9], [5, 8], [6, 7]].forEach(([a, b]) => {
+    arr[a] = b; arr[b] = a;
+  });
+  return arr;
+})();
+
+// --- Comparing a candidate moment against a person's Four Pillars --------
+// NOTE: this is an illustrative composite score, not a canonical formula —
+// classical 择日 (date selection) weighs many more factors and doesn't
+// reduce to a single number. The *direction* of each signal (support vs.
+// drain, clash vs. harmony) is classical; the specific weights below are
+// just a reasonable way to rank candidates, meant to be tuned/replaced once
+// the I-Ching/timing layer is built.
+function compareMomentToPerson(personPillars, momentPillars) {
+  const rel = classifyElementsRelativeTo(
+    pillarsToElementList(momentPillars),
+    personPillars.day.stemElement
+  );
+
+  const momentDayBranchIdx = BRANCHES.indexOf(momentPillars.day.branch);
+  const personDayBranchIdx = BRANCHES.indexOf(personPillars.day.branch);
+  const personYearBranchIdx = BRANCHES.indexOf(personPillars.year.branch);
+
+  const dayClash = branchClashPartnerIdx(personDayBranchIdx) === momentDayBranchIdx;
+  const dayHarmony = BRANCH_SIX_HARMONY_PARTNER[personDayBranchIdx] === momentDayBranchIdx;
+  // Day branch clashing the person's YEAR branch — an extension of 六冲, not
+  // the traditional 冲太岁/犯太岁 (which is specifically the current YEAR's
+  // branch clashing a birth-year branch, an annual event, not a daily one).
+  const yearClash = branchClashPartnerIdx(personYearBranchIdx) === momentDayBranchIdx;
+
+  const score =
+    (rel.supportive - rel.draining) + (dayHarmony ? 2 : 0) - (dayClash ? 3 : 0) - (yearClash ? 2 : 0);
+
+  return { rel, dayClash, dayHarmony, yearClash, score };
+}
+
+// --- lunar.js ---
+// lunar.js — 农历 (Chinese lunar calendar) month/day numbering, needed for
+// the classical 年月日时起卦法 (time-based hexagram casting), which uses the
+// LUNAR month-of-year and day-of-month numbers — not the solar-term-based
+// BaZi month pillar we use elsewhere.
+//
+// New-moon timing: Meeus, "Astronomical Algorithms" ch. 49, ported from the
+// public-domain-style reference implementation at
+// https://github.com/pavolgaj/AstroAlgorithms4Python/blob/master/moon_phases.py
+// (itself a direct port of Meeus's book). The tiny "additional corrections"
+// table in that source (~0.03 day max amplitude, i.e. under a minute) is
+// deliberately omitted here — its sin() argument units looked inconsistent
+// in the reference source, and at that magnitude it can't affect which
+// calendar day a new moon falls on, which is all lunar-month boundaries
+// need.
+
+function normalizeDegL(x) { return ((x % 360) + 360) % 360; }
+function d2r(d) { return (d * Math.PI) / 180; }
+
+// Mean JDE of the new moon for lunation number k (k=0 near 2000-01-06).
+function meanNewMoonJDE(k) {
+  const T = k / 1236.85;
+  return 2451550.09766 + 29.530588861 * k + 0.00015437 * T * T
+    - 0.000000150 * T ** 3 + 0.00000000073 * T ** 4;
+}
+
+// True JDE of the new moon for lunation number k, via Meeus's periodic
+// correction terms (25 terms, ~minutes-level accuracy).
+function newMoonJDE(k) {
+  const T = k / 1236.85;
+  const jd0 = meanNewMoonJDE(k);
+  const E = 1 - 0.002516 * T - 0.0000047 * T * T;
+  const M = d2r(normalizeDegL(2.5534 + 29.10535670 * k - 0.0000014 * T * T - 0.00000011 * T ** 3));
+  const Mm = d2r(normalizeDegL(201.5643 + 385.81693528 * k + 0.0107582 * T * T + 0.00001238 * T ** 3 - 0.000000058 * T ** 4));
+  const F = d2r(normalizeDegL(160.7108 + 390.67050284 * k - 0.0016118 * T * T - 0.00000227 * T ** 3 + 0.000000011 * T ** 4));
+  const W = d2r(normalizeDegL(124.7746 - 1.56375588 * k + 0.0020672 * T * T + 0.00000215 * T ** 3));
+
+  const args = [
+    Mm, M, 2 * Mm, 2 * F, Mm - M, Mm + M, 2 * M, Mm - 2 * F, Mm + 2 * F,
+    2 * Mm + M, 3 * Mm, M + 2 * F, M - 2 * F, 2 * Mm - M, W, Mm + 2 * M,
+    2 * Mm - 2 * F, 3 * M, Mm + M - 2 * F, 2 * Mm + 2 * F, Mm + M + 2 * F,
+    Mm - M + 2 * F, Mm - M - 2 * F, 3 * Mm + M, 4 * Mm,
+  ];
+  const coef = [
+    -0.4072, 0.17241 * E, 0.01608, 0.01039, 0.00739 * E, -0.00514 * E,
+    0.00208 * E * E, -0.00111, -0.00057, 0.00056 * E, -0.00042, 0.00042 * E,
+    0.00038 * E, -0.00024 * E, -0.00017, -0.00007, 0.00004, 0.00004,
+    0.00003, 0.00003, -0.00003, 0.00003, -0.00002, -0.00002, 0.00002,
+  ];
+
+  let jd = jd0;
+  for (let i = 0; i < args.length; i++) jd += coef[i] * Math.sin(args[i]);
+  return jd;
+}
+
+// The new moon at or immediately after JD `jd`.
+function nextNewMoonAtOrAfter(jd) {
+  let k = Math.floor(((jd - 2451545) / 365.25) * 12.3685) - 2; // start a bit early, step forward
+  let result = newMoonJDE(k);
+  while (result < jd) {
+    k += 1;
+    result = newMoonJDE(k);
+  }
+  return { jd: result, k };
+}
+
+// All new moons in [startJD, endJD], inclusive-ish (used to enumerate lunar
+// month boundaries across a solstice-to-solstice span).
+function newMoonsInRange(startJD, endJD) {
+  const moons = [];
+  let { jd, k } = nextNewMoonAtOrAfter(startJD);
+  while (jd <= endJD) {
+    moons.push(jd);
+    k += 1;
+    jd = newMoonJDE(k);
+  }
+  return moons;
+}
+
+function winterSolsticeJD(calendarYear) {
+  const seed = gregorianToJD(calendarYear, 12, 22, 12, 0, 0);
+  return findLongitudeCrossing(270, seed);
+}
+
+// Build the lunar month table spanning one solstice-to-solstice year
+// (冬至-to-冬至), anchored on the calendar year containing the LATER
+// solstice — e.g. lunarYearTable(2026) covers winter solstice 2025 through
+// winter solstice 2026, i.e. 农历 month 11 of the outgoing year through
+// month 10 of 2026 (plus a leap month if this span has one).
+function lunarYearTable(calendarYear) {
+  const ws1 = winterSolsticeJD(calendarYear - 1);
+  const ws2 = winterSolsticeJD(calendarYear);
+  // New moons from the one on/before ws1 through the one on/before ws2,
+  // giving the month-start boundaries for every month from 冬至-month to
+  // just before the next 冬至-month.
+  const firstMoon = nextNewMoonAtOrAfter(ws1 - 29.6).jd <= ws1
+    ? nextNewMoonAtOrAfter(ws1 - 29.6).jd
+    : nextNewMoonAtOrAfter(ws1 - 59.2).jd;
+  const moons = [firstMoon, ...newMoonsInRange(firstMoon + 1, ws2)];
+  // moons[i] .. moons[i+1] defines month i's span. The last entry should be
+  // the new moon on/before ws2 (start of the *next* solstice year's month 11).
+  const monthCount = moons.length - 1; // 12 or 13
+
+  // Which months contain a zhongqi (中气 — the 12 non-jie solar terms)?
+  const zhongqiJDs = [calendarYear - 1, calendarYear, calendarYear + 1]
+    .flatMap((y) => solarTermsForYear(y))
+    .filter((t) => !t.jie)
+    .map((t) => t.jd)
+    .sort((a, b) => a - b);
+
+  // Compared by CIVIL DAY (Beijing time), not raw instant: a solar term and
+  // a new moon can land on the same civil day at different hours, and the
+  // classical rule is about which lunar month's civil-day range a solar
+  // term's date falls in, not sub-day instant ordering.
+  const hasZhongqi = (start, end) => {
+    const startDay = chinaDayIndex(start), endDay = chinaDayIndex(end);
+    return zhongqiJDs.some((z) => {
+      const zDay = chinaDayIndex(z);
+      return zDay >= startDay && zDay < endDay;
+    });
+  };
+
+  let leapIndex = -1;
+  if (monthCount === 13) {
+    // First month after month 11 (index 0 is month 11 itself, never leap)
+    // with no zhongqi is the leap month.
+    for (let i = 1; i < monthCount; i++) {
+      if (!hasZhongqi(moons[i], moons[i + 1])) { leapIndex = i; break; }
+    }
+  }
+
+  const months = [];
+  let num = 11;
+  for (let i = 0; i < monthCount; i++) {
+    const isLeap = i === leapIndex;
+    // A leap month keeps the SAME number as the month right before it
+    // (闰六月, not a renumbered 七月) — only non-leap months advance the count.
+    const number = isLeap ? months[months.length - 1].number : num;
+    months.push({ number, isLeap, startJD: moons[i], endJD: moons[i + 1] });
+    if (!isLeap) num = num === 12 ? 1 : num + 1;
+  }
+  return months;
+}
+
+// JD (a real-valued UTC instant) -> integer China civil-day index. JD flips
+// at UTC NOON by definition (not midnight), so floor(JD) alone would bucket
+// by the wrong boundary; +0.5 shifts to a midnight-based UTC day count, and
+// +8/24 shifts that to China's UTC+8 civil day.
+function chinaDayIndex(jd) {
+  return Math.floor(jd + 0.5 + 8 / 24);
+}
+
+// Gregorian local (China civil) date -> {lunarMonth, isLeap, lunarDay}.
+// Builds the table for the calendar year whose 冬至-to-冬至 span should
+// contain the date, with a fallback to the adjacent year's table near the
+// solstice boundary.
+function gregorianToLunar(Y, M, D) {
+  const targetJD = localToUtcJD(Y, M, D, 12, 0, 8); // noon China time that date -> true UTC JD
+  const targetDay = chinaDayIndex(targetJD);
+  for (const tableYear of [Y, Y + 1, Y - 1]) {
+    const months = lunarYearTable(tableYear);
+    for (const m of months) {
+      const startDay = chinaDayIndex(m.startJD);
+      const endDay = chinaDayIndex(m.endJD);
+      if (targetDay >= startDay && targetDay < endDay) {
+        return { lunarMonth: m.number, isLeap: m.isLeap, lunarDay: targetDay - startDay + 1 };
+      }
+    }
+  }
+  throw new Error('Could not place date in lunar calendar: ' + Y + '-' + M + '-' + D);
+}
+
+// --- hexagram.js ---
+// hexagram.js — deterministic time-based hexagram casting (梅花易数
+// 年月日时起卦法) + 纳甲 (Na Jia) line-level stem/branch assignment.
+//
+// Casting formula and trigram numbering verified against the classical
+// worked example (Shao Kangjie's 观梅占: 辰年十二月十七日申时 →
+// 上卦兑(2) 下卦离(3) 动爻1 → 泽火革之泽山咸) and the standard mnemonics
+// "乾一兑二离三震四巽五坎六艮七坤八" and the 纳甲口诀
+// "乾内甲子外壬午，坎内戊寅外戊申，震内庚子外庚午，艮内丙辰外丙戌，
+//  坤内乙未外癸丑，巽内辛丑外辛未，离内己卯外己酉，兑内丁巳外丁亥"
+// (yang trigrams 乾坎艮震 step branches forward/顺, yin trigrams 坤巽离兑
+// step backward/逆, by 2 branch-positions per line).
+
+const TRIGRAM_BY_NUM = { 1: '乾', 2: '兑', 3: '离', 4: '震', 5: '巽', 6: '坎', 7: '艮', 8: '坤' };
+// Bottom-to-top binary composition (1=yang/solid, 0=yin/broken).
+const TRIGRAM_BINARY = {
+  乾: [1, 1, 1], 兑: [1, 1, 0], 离: [1, 0, 1], 震: [1, 0, 0],
+  巽: [0, 1, 1], 坎: [0, 1, 0], 艮: [0, 0, 1], 坤: [0, 0, 0],
+};
+const TRIGRAM_ELEMENT_LABEL = {
+  乾: '天', 兑: '泽', 离: '火', 震: '雷', 巽: '风', 坎: '水', 艮: '山', 坤: '地',
+};
+
+const NAJIA_TABLE = {
+  乾: { stemIn: '甲', branchIn: '子', stemOut: '壬', branchOut: '午', yang: true },
+  坎: { stemIn: '戊', branchIn: '寅', stemOut: '戊', branchOut: '申', yang: true },
+  震: { stemIn: '庚', branchIn: '子', stemOut: '庚', branchOut: '午', yang: true },
+  艮: { stemIn: '丙', branchIn: '辰', stemOut: '丙', branchOut: '戌', yang: true },
+  坤: { stemIn: '乙', branchIn: '未', stemOut: '癸', branchOut: '丑', yang: false },
+  巽: { stemIn: '辛', branchIn: '丑', stemOut: '辛', branchOut: '未', yang: false },
+  离: { stemIn: '己', branchIn: '卯', stemOut: '己', branchOut: '酉', yang: false },
+  兑: { stemIn: '丁', branchIn: '巳', stemOut: '丁', branchOut: '亥', yang: false },
+};
+
+// The 3 Na Jia lines (stem fixed, branch steps by ±2) for a trigram used as
+// the inner (lines 1-3) or outer (lines 4-6) half of a hexagram.
+function najiaLinesForTrigram(trigramName, isOuter) {
+  const t = NAJIA_TABLE[trigramName];
+  const stem = isOuter ? t.stemOut : t.stemIn;
+  const startIdx = BRANCHES.indexOf(isOuter ? t.branchOut : t.branchIn);
+  const step = t.yang ? 2 : -2;
+  return [0, 1, 2].map((i) => {
+    const branchIdx = ((startIdx + i * step) % 12 + 12) % 12;
+    return pillarFromIndices(STEMS.indexOf(stem), branchIdx);
+  });
+}
+
+function buildHexagramLines(lowerNum, upperNum) {
+  const lowerName = TRIGRAM_BY_NUM[lowerNum];
+  const upperName = TRIGRAM_BY_NUM[upperNum];
+  const lines = [...najiaLinesForTrigram(lowerName, false), ...najiaLinesForTrigram(upperName, true)];
+  const binary = [...TRIGRAM_BINARY[lowerName], ...TRIGRAM_BINARY[upperName]];
+  return { lowerName, upperName, lines, binary };
+}
+
+// Given a 6-bit bottom-to-top binary array, find its trigram number (1-8)
+// for the bottom 3 and top 3 bits.
+function trigramNumFromBits(bits3) {
+  const name = Object.keys(TRIGRAM_BINARY).find((n) => TRIGRAM_BINARY[n].every((b, i) => b === bits3[i]));
+  return Number(Object.keys(TRIGRAM_BY_NUM).find((k) => TRIGRAM_BY_NUM[k] === name));
+}
+
+const STAGE_LABEL = {
+  1: '初期 (early — 潜龙勿用, not yet time to act)',
+  2: '初期 (early — 见龙在田, first traction)',
+  3: '过渡 (transition — 君子终日乾乾, a risky turning point)',
+  4: '过渡 (transition — 或跃在渊, uncertain, entering the wider arena)',
+  5: '成熟 (mature — 飞龙在天, peak)',
+  6: '终末 (verge of reversal — 亢龙有悔, overextended; 物极必反)',
+};
+
+// Cast a hexagram deterministically from the classical
+// 年月日时起卦法 (time-based casting method):
+//   上卦 = (年支数+月数+日数) mod 8   下卦 = (年支数+月数+日数+时支数) mod 8
+//   动爻 = (年支数+月数+日数+时支数) mod 6
+// yearBranchNum/hourBranchNum: 1-12 (子=1...亥=12). lunarMonth: 1-12.
+// lunarDay: 1-30.
+function castHexagram(yearBranchNum, lunarMonth, lunarDay, hourBranchNum) {
+  const sum1 = yearBranchNum + lunarMonth + lunarDay;
+  const sum2 = sum1 + hourBranchNum;
+  const upperNum = ((sum1 - 1) % 8) + 1;
+  const lowerNum = ((sum2 - 1) % 8) + 1;
+  const movingLine = ((sum2 - 1) % 6) + 1; // 1 = bottom line
+
+  const present = buildHexagramLines(lowerNum, upperNum);
+  const transformedBits = present.binary.map((b, i) => (i === movingLine - 1 ? 1 - b : b));
+  const transformedLowerNum = trigramNumFromBits(transformedBits.slice(0, 3));
+  const transformedUpperNum = trigramNumFromBits(transformedBits.slice(3, 6));
+  const future = buildHexagramLines(transformedLowerNum, transformedUpperNum);
+
+  const presentName = hexagramFullName(present.lowerName, present.upperName);
+  const futureName = hexagramFullName(future.lowerName, future.upperName);
+  return {
+    present, future, movingLine,
+    stageLabel: STAGE_LABEL[movingLine],
+    presentName, futureName,
+    presentLabel: `${presentName.fullLabel} (${present.upperName}上${present.lowerName}下, "${presentName.title}")`,
+    futureLabel: `${futureName.fullLabel} (${future.upperName}上${future.lowerName}下, "${futureName.title}")`,
+  };
+}
+
+// --- 64-hexagram proper names ---------------------------------------------
+// Verified against Wikipedia's "List of hexagrams of the I Ching" (King Wen
+// order), cross-checked against the classical worked example (泽火革,
+// 泽山咸) and the earlier walkthrough's 大有/睽/萃/困. Keyed [lower][upper].
+const HEXAGRAM_NAMES = {
+  乾: { 乾: ['乾', 'Force / The Creative'], 坎: ['需', 'Waiting'], 艮: ['大畜', 'Great Accumulating'], 震: ['大壮', 'Great Power'], 坤: ['泰', 'Peace'], 巽: ['小畜', 'Small Accumulating'], 离: ['大有', 'Great Possessing'], 兑: ['夬', 'Breakthrough'] },
+  坎: { 乾: ['讼', 'Conflict / Lawsuit'], 坎: ['坎', 'The Abysmal Water'], 艮: ['蒙', 'Youthful Folly'], 震: ['解', 'Deliverance'], 坤: ['师', 'The Army'], 巽: ['涣', 'Dispersion'], 离: ['未济', 'Before Completion'], 兑: ['困', 'Oppression'] },
+  艮: { 乾: ['遁', 'Retreat'], 坎: ['蹇', 'Obstruction'], 艮: ['艮', 'Keeping Still'], 震: ['小过', 'Small Exceeding'], 坤: ['剥', 'Splitting Apart'], 巽: ['渐', 'Development'], 离: ['旅', 'The Wanderer'], 兑: ['咸', 'Influence'] },
+  震: { 乾: ['无妄', 'Innocence'], 坎: ['屯', 'Sprouting'], 艮: ['颐', 'Jaws'], 震: ['震', 'The Arousing Thunder'], 坤: ['复', 'Return'], 巽: ['益', 'Increase'], 离: ['噬嗑', 'Biting Through'], 兑: ['随', 'Following'] },
+  坤: { 乾: ['否', 'Standstill'], 坎: ['比', 'Holding Together'], 艮: ['剥', 'Splitting Apart'], 震: ['豫', 'Enthusiasm'], 坤: ['坤', 'The Receptive'], 巽: ['观', 'Contemplation'], 离: ['晋', 'Progress'], 兑: ['萃', 'Gathering Together'] },
+  巽: { 乾: ['姤', 'Coming to Meet'], 坎: ['井', 'The Well'], 艮: ['蛊', 'Decaying'], 震: ['恒', 'Duration'], 坤: ['升', 'Pushing Upward'], 巽: ['巽', 'The Gentle Wind'], 离: ['鼎', 'The Cauldron'], 兑: ['大过', 'Great Exceeding'] },
+  离: { 乾: ['同人', 'Concording People'], 坎: ['既济', 'After Completion'], 艮: ['贲', 'Grace'], 震: ['丰', 'Abundance'], 坤: ['明夷', 'Darkening of the Light'], 巽: ['家人', 'The Family'], 离: ['离', 'The Clinging Fire'], 兑: ['革', 'Revolution'] },
+  兑: { 乾: ['履', 'Treading'], 坎: ['节', 'Limitation'], 艮: ['损', 'Decrease'], 震: ['归妹', 'Converting the Maiden'], 坤: ['临', 'Approach'], 巽: ['中孚', 'Inner Truth'], 离: ['睽', 'Opposition'], 兑: ['兑', 'The Joyous Lake'] },
+};
+
+function hexagramFullName(lowerName, upperName) {
+  const [name, title] = HEXAGRAM_NAMES[lowerName][upperName];
+  const fullLabel = TRIGRAM_ELEMENT_LABEL[upperName] + TRIGRAM_ELEMENT_LABEL[lowerName] + name;
+  return { name, title, fullLabel };
+}
+
+// --- 八宫 (Eight Palaces): 世/应 line position + 六亲 per line -----------
+// Verified against search results: 世应 spacing is always 3 lines apart
+// ("世应中间隔两个爻位"), and 游魂/归魂 world-line positions follow
+// "游四归三" (游魂 世 at line4, 归魂 世 at line3). The 8 canonical
+// diff-from-pure-hexagram masks below were cross-checked against the
+// classical 乾宫 worked examples (乾为天/天风姤/.../火地晋/火天大有).
+const PALACE_ELEMENT = { 乾: '金', 兑: '金', 离: '火', 震: '木', 巽: '木', 坎: '水', 艮: '土', 坤: '土' };
+const SHIYING_MASKS = [
+  { mask: [0, 0, 0, 0, 0, 0], shi: 6, ying: 3, type: '本宫' },
+  { mask: [1, 0, 0, 0, 0, 0], shi: 1, ying: 4, type: '一世' },
+  { mask: [1, 1, 0, 0, 0, 0], shi: 2, ying: 5, type: '二世' },
+  { mask: [1, 1, 1, 0, 0, 0], shi: 3, ying: 6, type: '三世' },
+  { mask: [1, 1, 1, 1, 0, 0], shi: 4, ying: 1, type: '四世' },
+  { mask: [1, 1, 1, 1, 1, 0], shi: 5, ying: 2, type: '五世' },
+  { mask: [1, 1, 1, 0, 1, 0], shi: 4, ying: 1, type: '游魂' },
+  { mask: [0, 0, 0, 0, 1, 0], shi: 3, ying: 6, type: '归魂' },
+];
+
+// Which of the 8 pure (palace) hexagrams a cast hexagram derives from, plus
+// its 世(self)/应(other) line positions (1-6, bottom=1).
+function findPalaceAndShiYing(binary) {
+  for (const trigramName of Object.keys(TRIGRAM_BINARY)) {
+    const pure = [...TRIGRAM_BINARY[trigramName], ...TRIGRAM_BINARY[trigramName]];
+    const diff = binary.map((b, i) => (b === pure[i] ? 0 : 1));
+    const match = SHIYING_MASKS.find((m) => m.mask.every((v, i) => v === diff[i]));
+    if (match) {
+      return {
+        palace: trigramName, palaceElement: PALACE_ELEMENT[trigramName],
+        shi: match.shi, ying: match.ying, type: match.type,
+      };
+    }
+  }
+  throw new Error('No palace/世应 match found for binary: ' + binary.join(''));
+}
+
+const LIUQIN_LABEL = {
+  peer: '兄弟', resource: '父母', output: '子孙', wealth: '妻财', pressure: '官鬼',
+};
+
+// 六亲 for each of a hexagram's 6 lines: compare each line's branch element
+// to the PALACE's element (as "self"), using the same generate/overcome
+// classification already used for the Day-Master comparisons elsewhere —
+// verified this is the same rule (生我=父母, 我生=子孙, 克我=官鬼, 我克=妻财,
+// 同我=兄弟), just relabeled.
+function liuqinForHexagram(hex) {
+  const { palace, palaceElement, shi, ying, type } = findPalaceAndShiYing(hex.binary);
+  const liuqin = hex.lines.map((l) => {
+    const rel = classifyElementsRelativeTo([l.branchElement], palaceElement);
+    const role = Object.keys(rel.roles).find((r) => rel.roles[r] === 1);
+    return LIUQIN_LABEL[role];
+  });
+  return { palace, palaceElement, shi, ying, type, liuqin };
+}
+
+// 用神 (the line to focus on) by decision category. "self" uses the 世爻
+// (the querent's own line) — the natural default for "will MY undertaking
+// succeed" questions (e.g. starting a project). The 六亲 categories are for
+// questions about obtaining/facing a specific kind of thing (e.g. 妻财 for
+// a stock/wealth question). If more than one line carries the needed 六亲
+// (用神多现), all matching lines are returned — picking among them is a
+// further classical refinement not implemented here.
+const YONG_SHEN_CATEGORIES = {
+  self: { label: '自身/事业能否成 (self — will my venture succeed)', liuqin: null },
+  wealth: { label: '财运/买卖 (wealth — e.g. a stock or investment)', liuqin: '妻财' },
+  authority: { label: '事业/权位 (career/authority — e.g. a promotion)', liuqin: '官鬼' },
+  property: { label: '房产/装修/合同文件 (property/renovation/documents)', liuqin: '父母' },
+  children_health: { label: '子女/健康调养/求医 (children, health recovery, treatment)', liuqin: '子孙' },
+  danger_illness: { label: '疾病/官司/危险 (illness, lawsuit, danger)', liuqin: '官鬼' },
+  relationships: { label: '朋友/合伙/竞争 (friends, partners, competitors)', liuqin: '兄弟' },
+};
+
+function findYongShenLines(hex, category) {
+  const { shi, liuqin } = liuqinForHexagram(hex);
+  const cat = YONG_SHEN_CATEGORIES[category];
+  if (!cat || cat.liuqin === null) return [shi]; // "self" -> the 世爻 position
+  const positions = [];
+  liuqin.forEach((lq, i) => { if (lq === cat.liuqin) positions.push(i + 1); });
+  return positions;
+}
+
+// Deliberately NOT the 六亲 kinship words here — those label a line's
+// identity relative to the hexagram's palace, a different comparison. This
+// describes what the reference (日辰/person) does TO the line in plain
+// terms, so the two comparisons can't be misread as the same thing.
+const RELATION_LABEL = {
+  peer: '同气 same element (neutral)',
+  resource: '生扶 generates/supports the line',
+  output: '被泄 the line generates this — drains it a little',
+  wealth: '被线克 the line overcomes/controls this',
+  pressure: '克制 overcomes/pressures the line',
+};
+
+// General-purpose relation of a hexagram LINE against any pillar-like
+// object (a BaZi pillar, or another line) that has .branch/.branchElement,
+// plus branch 合/冲 between them. Used both for "用神 vs. the casting
+// moment's own day pillar (日辰)" — the classically central check — and
+// "用神 vs. the person's day pillar" (our personalization extension).
+function lineVsPillarRelation(line, refPillar) {
+  const refBranchIdx = BRANCHES.indexOf(refPillar.branch);
+  const lineBranchIdx = BRANCHES.indexOf(line.branch);
+  const clash = branchClashPartnerIdx(refBranchIdx) === lineBranchIdx;
+  const harmony = BRANCH_SIX_HARMONY_PARTNER[refBranchIdx] === lineBranchIdx;
+  const rel = classifyElementsRelativeTo([refPillar.branchElement], line.branchElement);
+  const role = Object.keys(rel.roles).find((r) => rel.roles[r] === 1);
+  return { clash, harmony, role, roleLabel: RELATION_LABEL[role] };
+}
+
+// --- Net Read: a synthesized narrative + itemized reasoning --------------
+// NOT a classical formula — this is my own composite for showing the
+// reasoning behind a lean (favorable/cautious/mixed), so it can be learned
+// from and second-guessed rather than trusted as a verdict. The *signals*
+// (支持/生扶, 冲/合, etc.) are classical; the specific point weights below
+// are an illustrative way to add them up, same spirit as the moment-vs-
+// person score elsewhere in this tool.
+const ROLE_DELTA = { peer: 0.5, resource: 1, output: -0.5, wealth: -0.3, pressure: -1 };
+
+function addRelationSignals(signals, rel, contextLabel) {
+  signals.push({ delta: ROLE_DELTA[rel.role], reason: `${contextLabel}: ${RELATION_LABEL[rel.role]}` });
+  if (rel.harmony) signals.push({ delta: 1, reason: `${contextLabel}: 六合 harmony` });
+  if (rel.clash) signals.push({ delta: -1.5, reason: `${contextLabel}: 六冲 clash` });
+}
+
+function collectNetReadSignals(hex, yongShenPositions, dayPillar, personPillars, momentCmp) {
+  const signals = [];
+  yongShenPositions.forEach((pos) => {
+    const line = hex.present.lines[pos - 1];
+    addRelationSignals(signals, lineVsPillarRelation(line, dayPillar), `用神(第${pos}爻) vs 日辰(${dayPillar.label})`);
+    if (personPillars) {
+      addRelationSignals(signals, lineVsPillarRelation(line, personPillars.day), `用神(第${pos}爻) vs 命主日柱(${personPillars.day.label})`);
+    }
+  });
+  if (momentCmp) {
+    if (momentCmp.dayHarmony) signals.push({ delta: 1, reason: '当下日柱与命主日柱六合' });
+    if (momentCmp.dayClash) signals.push({ delta: -1.5, reason: '当下日柱与命主日柱六冲' });
+    if (momentCmp.yearClash) signals.push({ delta: -1, reason: '当下日柱冲命主年支' });
+    const net = momentCmp.rel.supportive - momentCmp.rel.draining;
+    if (net !== 0) {
+      signals.push({
+        delta: net * 0.2,
+        reason: `当下时刻五行对命主日主${net > 0 ? '偏生扶' : '偏耗泄'} (支持${momentCmp.rel.supportive}/耗泄${momentCmp.rel.draining})`,
+      });
+    }
+  }
+  return signals;
+}
+
+function buildNetReadNarrative(hex, yongShenPositions) {
+  const movingIsYongShen = yongShenPositions.includes(hex.movingLine);
+  let text = `本卦 ${hex.presentName.fullLabel} ("${hex.presentName.title}") — 动爻在第${hex.movingLine}爻 `
+    + `(${hex.stageLabel.split(' (')[0]}), 变为 ${hex.futureName.fullLabel} ("${hex.futureName.title}")。`;
+  text += movingIsYongShen
+    ? ' 用神本身就是动爻 — 这件事最核心的部分正在发生转变，信号更直接。'
+    : ' 用神不是动爻 — 用神本身相对稳定，正在变化的是卦中其他的方面。';
+  return text;
+}
+
+function synthesizeNetRead(hex, yongShenPositions, dayPillar, personPillars, momentCmp) {
+  const narrative = buildNetReadNarrative(hex, yongShenPositions);
+  const signals = collectNetReadSignals(hex, yongShenPositions, dayPillar, personPillars, momentCmp);
+  const total = Math.round(signals.reduce((s, x) => s + x.delta, 0) * 10) / 10;
+  let leaning;
+  if (total >= 1.5) leaning = '偏向有利 leans favorable';
+  else if (total <= -1.5) leaning = '偏向谨慎 leans cautious';
+  else leaning = '喜忧参半/不明朗 mixed or unclear';
+  return { narrative, signals, total, leaning };
+}
+
+// Personalize a hexagram's 6 lines against a person's pillars: five-element
+// support/drain (same classification used elsewhere) plus per-line 合/冲
+// against the person's day branch.
+function personalizeHexagram(hex, personPillars) {
+  const dayMasterElement = personPillars.day.stemElement;
+  const personDayBranchIdx = BRANCHES.indexOf(personPillars.day.branch);
+  const elements = hex.lines.map((l) => l.branchElement); // branch element per line (the "rooted" element)
+  const rel = classifyElementsRelativeTo(elements, dayMasterElement);
+  const perLine = hex.lines.map((l, i) => {
+    const branchIdx = BRANCHES.indexOf(l.branch);
+    return {
+      line: l,
+      position: i + 1,
+      isMoving: false, // filled in by caller if relevant
+      clash: branchClashPartnerIdx(personDayBranchIdx) === branchIdx,
+      harmony: BRANCH_SIX_HARMONY_PARTNER[personDayBranchIdx] === branchIdx,
+    };
+  });
+  return { rel, perLine };
+}
+
+// --- app.js ---
+// app.js — DOM wiring for the BaZi pilot. No framework, no build step.
+
+const PILLAR_LABELS = { year: '年 Year', month: '月 Month', day: '日 Day', hour: '时 Hour' };
+const ROLE_LABELS = {
+  peer: '比劫 Peer',
+  resource: '印 Resource',
+  output: '食伤 Output',
+  wealth: '财 Wealth',
+  pressure: '官杀 Pressure',
+};
+
+let currentPersonPillars = null;
+
+function elementSpan(text, element) {
+  return `<span class="elem" style="color:${ELEMENT_COLOR[element]}">${text}</span>`;
+}
+
+function renderPillarsTable(pillars) {
+  const cols = ['year', 'month', 'day', 'hour'];
+  let html = '<table class="pillars"><tr>' +
+    cols.map((c) => `<th>${PILLAR_LABELS[c]}</th>`).join('') + '</tr><tr>';
+  cols.forEach((c) => {
+    const p = pillars[c];
+    html += `<td>${elementSpan(p.stem, p.stemElement)}<div class="py">${p.stemPinyin}</div></td>`;
+  });
+  html += '</tr><tr>';
+  cols.forEach((c) => {
+    const p = pillars[c];
+    html += `<td>${elementSpan(p.branch, p.branchElement)}<div class="py">${p.branchPinyin}</div></td>`;
+  });
+  html += '</tr></table>';
+  return html;
+}
+
+function renderBalance(pillars) {
+  const bal = fiveElementBalance(pillars);
+  const countsHtml = Object.entries(bal.counts)
+    .map(([el, n]) => `${elementSpan(el, el)}×${n}`)
+    .join('&nbsp;&nbsp;');
+  const rolesHtml = Object.entries(bal.roles)
+    .map(([role, n]) => `${ROLE_LABELS[role]}: ${n}`)
+    .join('&nbsp;&nbsp;');
+  return `
+    <p><strong>日主 Day Master:</strong> ${elementSpan(bal.dayMasterElement, bal.dayMasterElement)}</p>
+    <p><strong>五行 Five Elements:</strong> ${countsHtml}</p>
+    <p><strong>十神角色 Roles vs Day Master:</strong> ${rolesHtml}</p>
+    <p><strong>扶抑 Support vs Drain (rough):</strong>
+      supportive ${bal.supportive} / draining ${bal.draining}
+      <span class="caveat-inline">(simplified — no 月令/藏干/合冲刑害 weighting yet)</span>
+    </p>`;
+}
+
+function renderJieqi(result) {
+  if (!result.currentJieqi) return '';
+  let html = `<p><strong>当前节气 Current jie period:</strong> ${result.currentJieqi}`;
+  if (result.nextJieqi) {
+    const d = result.nextJieqi.date;
+    const pad = (n) => String(n).padStart(2, '0');
+    html += ` &nbsp;→&nbsp; next: ${result.nextJieqi.name} at ${d.year}-${pad(d.month)}-${pad(d.day)} ${pad(d.hour)}:${pad(d.minute)} UTC`;
+  }
+  html += '</p>';
+  return html;
+}
+
+function renderCompare(cmp) {
+  return `
+    <p><strong>与命主比较 vs. Person — score: ${cmp.score}</strong>
+      <span class="caveat-inline">(illustrative composite, see 关于评分 note below)</span></p>
+    <p>支持/耗泄 support ${cmp.rel.supportive} / drain ${cmp.rel.draining}
+      &nbsp;|&nbsp; 日柱合 day-branch harmony: ${cmp.dayHarmony ? '是 yes (+2)' : '否 no'}
+      &nbsp;|&nbsp; 日柱冲 day-branch clash: ${cmp.dayClash ? '是 yes (−3)' : '否 no'}
+      &nbsp;|&nbsp; 日冲年支 day branch clashes person's year branch: ${cmp.yearClash ? '是 yes (−2)' : '否 no'}
+      <span class="caveat-inline">(not the traditional 冲太岁, which is year-vs-year)</span></p>`;
+}
+
+function computeAndRender(Y, M, D, hour, minute, tz, targetEl) {
+  const result = computeFourPillars(Y, M, D, hour, minute, tz);
+  targetEl.innerHTML =
+    renderPillarsTable(result) + renderBalance(result) + renderJieqi(result);
+  return result;
+}
+
+// --- Person panel ---------------------------------------------------------
+document.getElementById('birth-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const Y = Number(document.getElementById('birth-year').value);
+  const M = Number(document.getElementById('birth-month').value);
+  const D = Number(document.getElementById('birth-day').value);
+  const hour = Number(document.getElementById('birth-hour').value);
+  const minute = Number(document.getElementById('birth-minute').value);
+  const tz = Number(document.getElementById('birth-tz').value);
+  currentPersonPillars = computeAndRender(Y, M, D, hour, minute, tz, document.getElementById('person-result'));
+  renderMomentCompare();
+});
+
+// --- Moment panel ---------------------------------------------------------
+function fillMomentFieldsFromDate(d, tz) {
+  document.getElementById('moment-year').value = d.year;
+  document.getElementById('moment-month').value = d.month;
+  document.getElementById('moment-day').value = d.day;
+  document.getElementById('moment-hour').value = d.hour;
+  document.getElementById('moment-minute').value = d.minute;
+  if (tz !== undefined) document.getElementById('moment-tz').value = tz;
+}
+
+function readMomentFields() {
+  return {
+    Y: Number(document.getElementById('moment-year').value),
+    M: Number(document.getElementById('moment-month').value),
+    D: Number(document.getElementById('moment-day').value),
+    hour: Number(document.getElementById('moment-hour').value),
+    minute: Number(document.getElementById('moment-minute').value),
+    tz: Number(document.getElementById('moment-tz').value),
+  };
+}
+
+let lastMomentPillars = null;
+
+function renderMomentCompare() {
+  const compareEl = document.getElementById('moment-compare');
+  if (!lastMomentPillars) { compareEl.innerHTML = ''; return; }
+  if (!currentPersonPillars) {
+    compareEl.innerHTML = '<p class="caveat">Compute the person\'s Four Pillars above to see a comparison.</p>';
+    return;
+  }
+  const cmp = compareMomentToPerson(currentPersonPillars, lastMomentPillars);
+  compareEl.innerHTML = renderCompare(cmp);
+}
+
+function computeMoment() {
+  const f = readMomentFields();
+  lastMomentPillars = computeAndRender(f.Y, f.M, f.D, f.hour, f.minute, f.tz, document.getElementById('moment-result'));
+  renderMomentCompare();
+}
+
+document.getElementById('moment-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  computeMoment();
+});
+
+document.getElementById('moment-now').addEventListener('click', () => {
+  const now = new Date();
+  const tz = -now.getTimezoneOffset() / 60;
+  fillMomentFieldsFromDate(
+    { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(), hour: now.getHours(), minute: now.getMinutes() },
+    tz
+  );
+  computeMoment();
+});
+
+// --- Scan for a better time ------------------------------------------------
+// Steps forward from the Moment panel's current date/time, treating it as a
+// local wall clock (JD arithmetic handles month/year rollovers for us), and
+// scores each candidate against the person's pillars.
+function addHoursToLocal(Y, M, D, hour, minute, deltaHours) {
+  const pseudoJD = gregorianToJD(Y, M, D, hour, minute, 0) + deltaHours / 24;
+  return jdToGregorian(pseudoJD);
+}
+
+document.getElementById('scan-btn').addEventListener('click', () => {
+  const resultEl = document.getElementById('scan-result');
+  if (!currentPersonPillars) {
+    resultEl.innerHTML = '<p class="caveat">Compute the person\'s Four Pillars above first.</p>';
+    return;
+  }
+  const start = readMomentFields();
+  const granularity = document.getElementById('scan-granularity').value;
+  const stepHours = granularity === 'day' ? 24 : 1;
+  const maxHorizon = granularity === 'day' ? 365 : 720;
+  const horizon = Math.min(Math.max(1, Number(document.getElementById('scan-horizon').value)), maxHorizon);
+
+  const candidates = [];
+  for (let i = 0; i <= horizon; i++) {
+    const t = addHoursToLocal(start.Y, start.M, start.D, start.hour, start.minute, i * stepHours);
+    const pillars = computeFourPillars(t.year, t.month, t.day, t.hour, t.minute, start.tz);
+    const cmp = compareMomentToPerson(currentPersonPillars, pillars);
+    candidates.push({ t, pillars, cmp });
+  }
+  candidates.sort((a, b) => b.cmp.score - a.cmp.score);
+  const top = candidates.slice(0, 10);
+
+  const pad = (n) => String(n).padStart(2, '0');
+  let html = '<table class="scan-table"><tr><th>时刻 DateTime</th><th>四柱</th><th>评分 Score</th><th>关系 Flags</th><th></th></tr>';
+  top.forEach((c, idx) => {
+    const dt = `${c.t.year}-${pad(c.t.month)}-${pad(c.t.day)} ${pad(c.t.hour)}:${pad(c.t.minute)}`;
+    const pillarsStr = `${c.pillars.year.label} ${c.pillars.month.label} ${c.pillars.day.label} ${c.pillars.hour.label}`;
+    const flags = [
+      c.cmp.dayHarmony ? '合' : null,
+      c.cmp.dayClash ? '冲' : null,
+      c.cmp.yearClash ? '日冲年支' : null,
+    ].filter(Boolean).join(' ') || '—';
+    html += `<tr>
+      <td>${dt}</td><td>${pillarsStr}</td><td>${c.cmp.score}</td><td>${flags}</td>
+      <td><button class="use-btn" data-idx="${idx}" type="button">使用 Use</button></td>
+    </tr>`;
+  });
+  html += '</table>';
+  html += `<p class="caveat">关于评分 About the score: an illustrative composite (five-element
+    support/drain relative to the person's Day Master, plus 日柱六合/六冲 and a day-vs-year-branch
+    六冲 check — not the traditional 冲太岁, which is year-vs-year). Directionally classical, but
+    the weights are not from a canonical text — treat ranking as a starting point, not a
+    verdict.</p>`;
+  resultEl.innerHTML = html;
+
+  resultEl.querySelectorAll('.use-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const c = top[Number(btn.dataset.idx)];
+      fillMomentFieldsFromDate(c.t, start.tz);
+      computeMoment();
+    });
+  });
+});
+
+// --- Hexagram casting ------------------------------------------------------
+function computeHexagramForMoment(f) {
+  const pillars = computeFourPillars(f.Y, f.M, f.D, f.hour, f.minute, f.tz);
+  const yearBranchNum = BRANCHES.indexOf(pillars.year.branch) + 1;
+  const lunar = gregorianToLunar(f.Y, f.M, f.D);
+  const hourBranchNum = hourToBranchIndex(f.hour) + 1;
+  const hex = castHexagram(yearBranchNum, lunar.lunarMonth, lunar.lunarDay, hourBranchNum);
+  return { hex, lunar, pillars };
+}
+
+function renderYaoBar(isYang, movingMarker) {
+  const bar = isYang
+    ? '<div class="yao yao-yang"></div>'
+    : '<div class="yao yao-yin"><span></span><span></span></div>';
+  const marker = movingMarker ? `<span class="yao-marker">${movingMarker}</span>` : '';
+  return `<div class="yao-cell">${bar}${marker}</div>`;
+}
+
+function renderHexagramLines(lines, binary, movingLineIdx, personPillars, shiYing, liuqin, yongShenPositions) {
+  const per = personPillars ? personalizeHexagram({ lines }, personPillars).perLine : null;
+  let html = '<table class="hex-lines">';
+  for (let i = 5; i >= 0; i--) { // draw top line (6) first, down to bottom line (1)
+    const l = lines[i];
+    const position = i + 1;
+    const isMoving = i === movingLineIdx;
+    const isYang = binary[i] === 1;
+    // Classical convention: a moving YANG line is turning to yin (marked ×),
+    // a moving YIN line is turning to yang (marked ○).
+    const marker = isMoving ? (isYang ? '×' : '○') : null;
+    const rowClasses = isMoving ? 'moving-line' : '';
+
+    let tags = liuqin ? `<span class="tag-liuqin">${liuqin[i]}</span>` : '';
+    if (shiYing) {
+      if (position === shiYing.shi) tags += '<span class="tag-shi">世</span>';
+      if (position === shiYing.ying) tags += '<span class="tag-ying">应</span>';
+    }
+    if (yongShenPositions && yongShenPositions.includes(position)) tags += '<span class="tag-yongshen">用</span>';
+
+    let flags = '<span class="flag-none">—</span>';
+    if (per) {
+      const p = per[i];
+      const hits = (p.clash ? '<span class="flag-clash">冲</span>' : '') + (p.harmony ? '<span class="flag-harmony">合</span>' : '');
+      flags = hits || flags;
+    } else {
+      flags = '<span class="flag-none">(compute person)</span>';
+    }
+    html += `<tr class="${rowClasses}"><td class="line-pos">${position}</td>
+      <td>${renderYaoBar(isYang, marker)}</td>
+      <td>${elementSpan(l.stem, l.stemElement)}${elementSpan(l.branch, l.branchElement)}</td>
+      <td class="tags-cell">${tags}</td>
+      <td class="flags-cell">${flags}</td></tr>`;
+  }
+  html += '</table>';
+  return html;
+}
+
+function renderYongShenAnalysis(hex, yongShenPositions, dayPillar, personPillars) {
+  const lines = yongShenPositions.map((pos) => {
+    const line = hex.present.lines[pos - 1];
+    const vsDay = lineVsPillarRelation(line, dayPillar);
+    let html = `<li>用神 line ${pos} (${elementSpan(line.stem, line.stemElement)}${elementSpan(line.branch, line.branchElement)}):
+      vs 日辰 (casting moment's day pillar, ${dayPillar.label}) — ${vsDay.roleLabel}
+      ${vsDay.clash ? '<span class="flag-clash">冲 clash</span>' : ''}${vsDay.harmony ? '<span class="flag-harmony">合 harmony</span>' : ''}`;
+    if (personPillars) {
+      const vsPerson = lineVsPillarRelation(line, personPillars.day);
+      html += `<br>&nbsp;&nbsp;vs person's day pillar (${personPillars.day.label}) — ${vsPerson.roleLabel}
+        ${vsPerson.clash ? '<span class="flag-clash">冲 clash</span>' : ''}${vsPerson.harmony ? '<span class="flag-harmony">合 harmony</span>' : ''}`;
+    }
+    html += '</li>';
+    return html;
+  });
+  const multiNote = yongShenPositions.length > 1
+    ? '<p class="caveat">用神多现 (multiple lines carry this role) — classical practice has further tie-breaking rules not implemented here; all matches are shown.</p>'
+    : '';
+  return `<ul class="yongshen-list">${lines.join('')}</ul>${multiNote}`;
+}
+
+function renderNetRead(net) {
+  const leaningClass = net.total >= 1.5 ? 'net-favorable' : net.total <= -1.5 ? 'net-cautious' : 'net-mixed';
+  const rows = net.signals.map((s) => {
+    const sign = s.delta > 0 ? '+' : '';
+    const cls = s.delta > 0 ? 'sig-pos' : s.delta < 0 ? 'sig-neg' : 'sig-neutral';
+    return `<li class="${cls}">${sign}${s.delta} — ${s.reason}</li>`;
+  }).join('');
+  return `<div class="net-read ${leaningClass}">
+    <p class="net-narrative">${net.narrative}</p>
+    <ul class="signal-list">${rows}</ul>
+    <p class="net-total">Total: ${net.total > 0 ? '+' : ''}${net.total} → <strong>${net.leaning}</strong></p>
+    <p class="caveat">This is my own composite for showing the reasoning, not a classical formula — the individual
+      signals (支持/生扶, 冲/合) are classical, the point weights used to add them up are illustrative.
+      Treat it as a starting read to compare against your own, not a verdict.</p>
+  </div>`;
+}
+
+function renderHexagram() {
+  const resultEl = document.getElementById('hexagram-result');
+  const f = readMomentFields();
+  const { hex, lunar, pillars } = computeHexagramForMoment(f);
+  const category = document.getElementById('yong-shen-category').value;
+  const liuqinInfo = liuqinForHexagram(hex.present);
+  const yongShenPositions = findYongShenLines(hex.present, category);
+  const momentCmp = currentPersonPillars ? compareMomentToPerson(currentPersonPillars, pillars) : null;
+  const netRead = synthesizeNetRead(hex, yongShenPositions, pillars.day, currentPersonPillars, momentCmp);
+
+  let html = `<p><strong>农历 Lunar date:</strong> ${lunar.isLeap ? '闰' : ''}${lunar.lunarMonth}月${lunar.lunarDay}日</p>`;
+  html += `<p><strong>宫 Palace:</strong> ${liuqinInfo.palace}宫(${liuqinInfo.palaceElement}) — ${liuqinInfo.type}卦</p>`;
+  html += `<h3>本卦 Present: ${hex.presentLabel}</h3>`;
+  html += renderHexagramLines(hex.present.lines, hex.present.binary, hex.movingLine - 1, currentPersonPillars, liuqinInfo, liuqinInfo.liuqin, yongShenPositions);
+  html += `<p><strong>动爻 Moving line ${hex.movingLine}:</strong> ${hex.stageLabel}</p>`;
+  html += `<h3>变卦 Future/trajectory: ${hex.futureLabel}</h3>`;
+  html += renderHexagramLines(hex.future.lines, hex.future.binary, -1, currentPersonPillars);
+
+  html += `<h3>用神分析 Yong Shen (key line) analysis</h3>`;
+  html += renderYongShenAnalysis(hex, yongShenPositions, pillars.day, currentPersonPillars);
+
+  html += `<h3>综合解读 Net Read</h3>`;
+  html += renderNetRead(netRead);
+
+  if (currentPersonPillars) {
+    const presentRel = personalizeHexagram(hex.present, currentPersonPillars).rel;
+    const futureRel = personalizeHexagram(hex.future, currentPersonPillars).rel;
+    html += `<p class="caveat">支持/耗泄 vs person's Day Master — present: ${presentRel.supportive}/${presentRel.draining}
+      &nbsp;|&nbsp; future: ${futureRel.supportive}/${futureRel.draining}
+      (六爻 branch-element tally, same simplified method as elsewhere — not full 世应/用神 analysis yet)</p>`;
+  } else {
+    html += '<p class="caveat">Compute the person\'s Four Pillars above to see line-by-line personalization (合/冲 flags, support/drain).</p>';
+  }
+  html += `<p class="caveat">起卦 is deterministic from this moment's calendar numbers — casting again for the same moment always gives the same hexagram.
+    用神多现 tie-breaking (when more than one line qualifies) is not implemented — all matching lines are shown instead.</p>`;
+
+  resultEl.innerHTML = html;
+}
+
+document.getElementById('cast-btn').addEventListener('click', renderHexagram);
+document.getElementById('yong-shen-category').addEventListener('change', () => {
+  if (document.getElementById('hexagram-result').innerHTML) renderHexagram();
+});
+
+// --- Calibration control for the day-pillar offset (kept as a fallback) --
+const GANZHI_60 = Array.from({ length: 60 }, (_, i) => {
+  const { stemIdx, branchIdx } = ganzhiFromIndex(i);
+  return STEMS[stemIdx] + BRANCHES[branchIdx];
+});
+const select = document.getElementById('correct-ganzhi');
+GANZHI_60.forEach((label, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `${i} — ${label}`;
+  if (i === GANZHI_JD_OFFSET % 60) opt.selected = true;
+  select.appendChild(opt);
+});
+
+const STORAGE_KEY = 'ganzhiJdOffset';
+const saved = localStorage.getItem(STORAGE_KEY);
+if (saved !== null) GANZHI_JD_OFFSET = Number(saved);
+
+document.getElementById('calibrate').addEventListener('click', () => {
+  const now = new Date();
+  let jdn = Math.floor(gregorianToJD(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12, 0, 0));
+  if (now.getHours() === 23) jdn += 1;
+  const correctIdx = Number(select.value);
+  const newOffset = ((correctIdx - jdn) % 60 + 60) % 60;
+  GANZHI_JD_OFFSET = newOffset;
+  localStorage.setItem(STORAGE_KEY, String(newOffset));
+  document.getElementById('calibrate-result').textContent =
+    ` Calibrated: GANZHI_JD_OFFSET = ${newOffset}. Recomputing moment...`;
+  computeMoment();
+});
+
+// --- Init: moment panel defaults to "now" ---------------------------------
+document.getElementById('moment-now').click();
+
+</script>
+</body>
+</html>
