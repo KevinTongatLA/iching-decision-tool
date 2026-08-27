@@ -140,6 +140,49 @@ tr.moving-line .yao-yang { background: #b8860b; }
 tr.moving-line .yao-yin span { background: #b8860b; }
 .yao-marker { font-size: 0.9rem; font-weight: 700; color: #b8860b; }
 
+.unknown-time-toggle { display: inline-block; margin-left: 1rem; font-size: 0.85rem; color: #555; }
+
+.rectify-panel {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px dashed #b8860b;
+  border-radius: 6px;
+  background: #fffaf0;
+}
+.rectify-panel h3 { margin-top: 0; font-size: 1rem; }
+.rectify-panel .field-row input[type="text"] { width: auto; min-width: 12rem; }
+
+.dayun-table { border-collapse: collapse; margin: 0.4rem 0 0.8rem; font-size: 0.9rem; }
+.dayun-table td { padding: 0.3rem 0.6rem; border: 1px solid #eee; text-align: center; }
+
+.rectified-badge {
+  background: #fff3cd;
+  border: 1px solid #e0c068;
+  border-radius: 5px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.8rem;
+}
+
+.dayun-chart { display: flex; align-items: flex-end; gap: 0.6rem; height: 6rem; margin: 0.6rem 0 1rem; }
+.dayun-bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; flex: 1; }
+.dayun-bar-track { display: flex; align-items: flex-end; height: 4.2rem; width: 1.4rem; }
+.dayun-bar { width: 100%; border-radius: 2px 2px 0 0; }
+.bar-favorable { background: #4caf50; }
+.bar-unfavorable { background: #e57373; }
+.bar-neutral { background: #ccc; }
+.dayun-bar-label { font-size: 0.7rem; color: #666; text-align: center; margin-top: 0.3rem; line-height: 1.2; }
+
+.flash-highlight { animation: flash-pulse 1.5s ease-out; }
+@keyframes flash-pulse {
+  0% { background-color: #fff3cd; }
+  100% { background-color: transparent; }
+}
+
+.rectify-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: 0.6rem 0; }
+.rectify-table th, .rectify-table td { border: 1px solid #eee; padding: 0.35rem 0.5rem; text-align: left; }
+.rectify-basis { font-size: 0.8rem; color: #555; }
+
 #verify-panel { background: #fff8ec; }
 #verify-panel .field-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 #verify-panel select { width: auto; }
@@ -179,13 +222,56 @@ tr.moving-line .yao-yin span { background: #b8860b; }
           <input type="number" id="birth-tz" value="8" step="0.5" min="-12" max="14">
         </label>
       </div>
+      <div class="field-row">
+        <label>性别 Gender (used for 大运 direction)
+          <select id="birth-gender">
+            <option value="male">男 Male</option>
+            <option value="female">女 Female</option>
+          </select>
+        </label>
+      </div>
       <p class="caveat">
         Uses local civil clock time as entered — no true-solar-time / longitude correction yet
         (a refinement for later; matters most near hour-pillar boundaries).
       </p>
       <button type="submit">排盘 Compute</button>
+      <label class="unknown-time-toggle">
+        <input type="checkbox" id="unknown-time-toggle"> 不确定具体时辰 I don't know my exact birth time
+      </label>
     </form>
     <div id="person-result" class="result"></div>
+
+    <div id="rectify-panel" class="rectify-panel" style="display:none">
+      <h3>时辰推算 Birth-time rectification</h3>
+      <p class="caveat">
+        Uses the date above (hour field ignored) plus your gender. Generates candidate hours,
+        computes each one's 大运 (decade luck pillars), and scores how well each candidate's
+        "structural turbulence" timeline (大运交接 / 冲日柱 / 冲大运 / 冲时柱-子女宫) lines up
+        with ages you remember as major turning points — timing only, not event type. Note:
+        Da Yun itself barely changes between candidate hours on the same day (it's keyed to the
+        month pillar) — most of the discrimination between candidates comes from the Hour
+        pillar's own clashes, so this works best with a few ages spread across your life, not
+        just one. This is a best-fit heuristic, not a certainty.
+      </p>
+      <div class="field-row">
+        <label>大致时段 Approximate period
+          <select id="rectify-period">
+            <option value="all">不确定 / 整天 Unsure — try all 12</option>
+            <option value="dawn">凌晨 Late night/early morning (~0-5am)</option>
+            <option value="morning">上午 Morning (~6-11am)</option>
+            <option value="afternoon">下午 Afternoon (~12-17pm)</option>
+            <option value="evening">晚上 Evening/night (~18-23pm)</option>
+          </select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label>人生转折点年龄 Ages of major turning points (comma-separated, e.g. 22, 28, 35)
+          <input type="text" id="rectify-ages" placeholder="22, 28, 35">
+        </label>
+      </div>
+      <button id="rectify-btn" type="button">推算 Rectify</button>
+      <div id="rectify-result" class="result"></div>
+    </div>
   </section>
 
   <section class="panel" id="moment-panel">
@@ -1170,6 +1256,170 @@ function personalizeHexagram(hex, personPillars) {
   return { rel, perLine };
 }
 
+// --- dayun.js ---
+// dayun.js — 大运 (decade luck pillars) + a timing-based birth-time
+// rectification helper for people who don't know their exact birth hour.
+//
+// Rules verified via search (see conversation/skill notes): direction is
+// 阳男阴女顺排 (forward — count toward the NEXT 节) / 阴男阳女逆排
+// (backward — toward the PREVIOUS 节); starting age via 三天为一岁，一天
+// 四个月 (3 days = 1 year, so 1 day = 4 months exactly — used directly
+// below rather than the 3-day ratio, since it's the same math with no
+// rounding). Cross-checked against a full worked example (1954 lunar
+// 九月初七丑时, male, 顺排, 6 days to 寒露 -> starts age 2, sequence
+// 甲戌/乙亥/丙子/丁丑/戊寅/己卯) — see test/verify.js.
+
+// Whether Da Yun runs forward (顺排) or backward (逆排): forward when
+// (yang year stem + male) or (yin year stem + female).
+function isDaYunForward(yearStemYinYang, isMale) {
+  const yearIsYang = yearStemYinYang === '阳';
+  return yearIsYang === isMale;
+}
+
+// Starting age of the first Da Yun, as {years, months} (days folded into
+// months per the classical ratio) — counting from birth to the next/prev
+// 节 in the required direction.
+function daYunStartingAge(jdUtc, isForward) {
+  const bracket = bracketingJieTerms(jdUtc);
+  const target = isForward ? bracket.next : bracket.prev;
+  const daySpan = Math.abs(target.jd - jdUtc);
+  const totalMonths = daySpan * 4; // 1 day = 4 months
+  const years = Math.floor(totalMonths / 12);
+  const months = Math.round(totalMonths % 12);
+  return { years, months, daySpan, jieName: target.name };
+}
+
+// Full Da Yun sequence for a person: starting age + N pillars (10-year
+// spans each), stepping through the 60-cycle from the month pillar.
+function daYunSequence(pillars, jdUtc, isMale, count = 8) {
+  const yearStemIdx = STEMS.indexOf(pillars.year.stem);
+  const forward = isDaYunForward(STEM_YINYANG[yearStemIdx], isMale);
+  const start = daYunStartingAge(jdUtc, forward);
+
+  const monthStemIdx = STEMS.indexOf(pillars.month.stem);
+  const monthBranchIdx = BRANCHES.indexOf(pillars.month.branch);
+  const monthGanzhiIdx = ganzhiIndexFromStemBranch(monthStemIdx, monthBranchIdx);
+
+  const sequence = [];
+  for (let i = 1; i <= count; i++) {
+    const idx = monthGanzhiIdx + (forward ? i : -i);
+    const { stemIdx, branchIdx } = ganzhiFromIndex(idx);
+    sequence.push({
+      pillar: pillarFromIndices(stemIdx, branchIdx),
+      startAge: start.years + (i - 1) * 10,
+      endAge: start.years + i * 10,
+    });
+  }
+  return { forward, startingAge: start, sequence };
+}
+
+// A ganzhi index (0-59) from explicit stem/branch indices — inverse of
+// ganzhiFromIndex. Solves stemIdx = idx%10, branchIdx = idx%12 via CRT
+// (since gcd(10,12)=2, a solution exists only when stemIdx and branchIdx
+// have the same parity, which is always true for real ganzhi pairs).
+function ganzhiIndexFromStemBranch(stemIdx, branchIdx) {
+  for (let idx = 0; idx < 60; idx++) {
+    if (idx % 10 === stemIdx && idx % 12 === branchIdx) return idx;
+  }
+  throw new Error(`No ganzhi index for stem ${stemIdx}, branch ${branchIdx} — invalid combination`);
+}
+
+// Liu Nian (annual pillar) for a given calendar year — reuses the same
+// Lichun-boundary year-pillar logic as the main BaZi engine, evaluated at
+// that year's Lichun+1 day (safely inside the BaZi year, avoids the
+// boundary-day ambiguity).
+function liuNianPillar(calendarYear) {
+  return yearPillar(calendarYear, true);
+}
+
+// --- Turbulence timeline: a proxy for "something big is likely underway",
+// used to correlate against a person's self-reported ages of major life
+// turning points (timing only, NOT event type — see conversation notes on
+// why event-type prediction was deliberately avoided). Signals used, all
+// classical relations already implemented elsewhere in this tool:
+//  - a new Da Yun starting this year (structural transition regardless of
+//    clash — classically always treated as a notable pivot)
+//  - this year's Liu Nian clashing the Day pillar (流年冲日柱)
+//  - this year's Liu Nian clashing the current Da Yun pillar (流年冲大运)
+//  - the current Da Yun clashing the Day pillar (大运冲命)
+//  - this year's Liu Nian or the current Da Yun clashing the HOUR pillar
+//    (流年/大运冲时柱) — the hour position is classically 子女宫 (the
+//    children/legacy palace), and it's the one pillar that actually
+//    changes between candidate birth hours; Da Yun itself (keyed off the
+//    month pillar + a year/gender-based direction) barely varies by hour
+//    within the same day, so without this signal every candidate hour
+//    scores identically and rectification can't discriminate at all.
+function turbulenceTimeline(pillars, dayun, birthCalendarYear, maxAge = 80) {
+  const dayBranchIdx = BRANCHES.indexOf(pillars.day.branch);
+  const hourBranchIdx = BRANCHES.indexOf(pillars.hour.branch);
+  const timeline = [];
+  for (let age = 1; age <= maxAge; age++) {
+    const calendarYear = birthCalendarYear + age;
+    const ln = liuNianPillar(calendarYear);
+    const lnBranchIdx = BRANCHES.indexOf(ln.branch);
+    const currentDY = dayun.sequence.find((d) => age >= d.startAge && age < d.endAge);
+    if (!currentDY) continue;
+    const dyBranchIdx = BRANCHES.indexOf(currentDY.pillar.branch);
+
+    let score = 0;
+    const reasons = [];
+    if (age === currentDY.startAge) { score += 1; reasons.push('大运交接 new Da Yun begins'); }
+    if (branchClashPartnerIdx(dayBranchIdx) === lnBranchIdx) { score += 1.5; reasons.push('流年冲日柱'); }
+    if (branchClashPartnerIdx(dyBranchIdx) === lnBranchIdx) { score += 1.5; reasons.push('流年冲大运'); }
+    if (branchClashPartnerIdx(dayBranchIdx) === dyBranchIdx) { score += 1; reasons.push('大运冲日柱'); }
+    if (branchClashPartnerIdx(hourBranchIdx) === lnBranchIdx) { score += 1.5; reasons.push('流年冲时柱(子女宫)'); }
+    if (branchClashPartnerIdx(hourBranchIdx) === dyBranchIdx) { score += 1; reasons.push('大运冲时柱(子女宫)'); }
+
+    if (score > 0) timeline.push({ age, calendarYear, score, reasons, liuNian: ln.label, daYun: currentDY.pillar.label });
+  }
+  return timeline;
+}
+
+// --- Life-cycle favorability curve --------------------------------------
+// Classical framing: a Da Yun period's quality is read primarily against
+// the Day Master (喜用神 — is this decade's element what the Day Master
+// needs, or does it clash/drain it), not against the whole natal chart.
+// Reuses the same classify/clash/harmony machinery as everywhere else in
+// this tool — no new unverified constants, just applied over a new axis
+// (each decade instead of the 8 natal characters).
+function daYunFavorability(dayun, pillars) {
+  const dayMasterElement = pillars.day.stemElement;
+  const dayBranchIdx = BRANCHES.indexOf(pillars.day.branch);
+  return dayun.sequence.map((period) => {
+    const rel = classifyElementsRelativeTo(
+      [period.pillar.stemElement, period.pillar.branchElement],
+      dayMasterElement
+    );
+    const elementScore = rel.supportive - rel.draining;
+    const periodBranchIdx = BRANCHES.indexOf(period.pillar.branch);
+    const clash = branchClashPartnerIdx(dayBranchIdx) === periodBranchIdx;
+    const harmony = BRANCH_SIX_HARMONY_PARTNER[dayBranchIdx] === periodBranchIdx;
+    const score = elementScore + (clash ? -1.5 : 0) + (harmony ? 1 : 0);
+    return { ...period, score, clash, harmony };
+  });
+}
+
+// Score how well a candidate's turbulence timeline matches a person's
+// self-reported ages of major turning points. Each reported age counts
+// toward the nearest turbulence peak within a small tolerance window
+// (turning points are remembered approximately, not to the exact year).
+function scoreCandidateAgainstReportedAges(timeline, reportedAges, toleranceYears = 2) {
+  let total = 0;
+  const matches = [];
+  reportedAges.forEach((reportedAge) => {
+    let best = null;
+    timeline.forEach((t) => {
+      const distance = Math.abs(t.age - reportedAge);
+      if (distance <= toleranceYears) {
+        const weight = t.score * (1 - distance / (toleranceYears + 1));
+        if (!best || weight > best.weight) best = { ...t, weight, reportedAge };
+      }
+    });
+    if (best) { total += best.weight; matches.push(best); }
+  });
+  return { total: Math.round(total * 10) / 10, matches };
+}
+
 // --- app.js ---
 // app.js — DOM wiring for the BaZi pilot. No framework, no build step.
 
@@ -1183,6 +1433,43 @@ const ROLE_LABELS = {
 };
 
 let currentPersonPillars = null;
+let currentPersonGender = null;
+let currentPersonJdUtc = null;
+
+const BRANCH_HOUR_RANGE = ['23:00-00:59', '01:00-02:59', '03:00-04:59', '05:00-06:59', '07:00-08:59', '09:00-10:59', '11:00-12:59', '13:00-14:59', '15:00-16:59', '17:00-18:59', '19:00-20:59', '21:00-22:59'];
+const BRANCH_REPRESENTATIVE_HOUR = [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21];
+const RECTIFY_PERIOD_BRANCHES = {
+  all: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  dawn: [0, 1, 2],
+  morning: [3, 4, 5],
+  afternoon: [6, 7, 8],
+  evening: [9, 10, 11],
+};
+
+function renderDaYun(dy, pillars) {
+  const rows = dy.sequence.slice(0, 8).map((s) =>
+    `<td>${s.startAge}-${s.endAge}<div class="py">${elementSpan(s.pillar.stem, s.pillar.stemElement)}${elementSpan(s.pillar.branch, s.pillar.branchElement)}</div></td>`
+  ).join('');
+
+  const fav = daYunFavorability(dy, pillars);
+  const maxAbs = Math.max(1, ...fav.map((f) => Math.abs(f.score)));
+  const bars = fav.map((f) => {
+    const cls = f.score > 0.5 ? 'bar-favorable' : f.score < -0.5 ? 'bar-unfavorable' : 'bar-neutral';
+    const heightPct = Math.max(8, Math.round((Math.abs(f.score) / maxAbs) * 100));
+    const flags = (f.clash ? ' 冲' : '') + (f.harmony ? ' 合' : '');
+    return `<div class="dayun-bar-col">
+      <div class="dayun-bar-track"><div class="dayun-bar ${cls}" style="height:${heightPct}%"></div></div>
+      <div class="dayun-bar-label">${f.startAge}<br>${f.pillar.label}${flags}</div>
+    </div>`;
+  }).join('');
+
+  return `<p><strong>大运 Da Yun</strong> (${dy.forward ? '顺排 forward' : '逆排 backward'},
+    起运 starts at age ${dy.startingAge.years}y${dy.startingAge.months}m, via ${dy.startingAge.jieName})</p>
+    <table class="dayun-table"><tr>${rows}</tr></table>
+    <p><strong>运势曲线 Life-cycle curve</strong>
+      <span class="caveat-inline">(favorability of each decade vs. Day Master — 生扶/克泄 + 冲/合, same scoring style as elsewhere; a heuristic, not a classical formula)</span></p>
+    <div class="dayun-chart">${bars}</div>`;
+}
 
 function elementSpan(text, element) {
   return `<span class="elem" style="color:${ELEMENT_COLOR[element]}">${text}</span>`;
@@ -1254,6 +1541,17 @@ function computeAndRender(Y, M, D, hour, minute, tz, targetEl) {
 }
 
 // --- Person panel ---------------------------------------------------------
+// Set by the rectification "Use" button just before it triggers a normal
+// form submit, so the submit handler can show that this hour was
+// estimated (not entered as a known fact) and how it was chosen.
+let pendingRectifiedInfo = null;
+
+function renderRectifiedBadge(info) {
+  return `<p class="rectified-badge">⏱ Birth time estimated via rectification: ${BRANCH_HOUR_RANGE[info.branch]}
+    (${BRANCHES[info.branch]}时) — chosen for best fit (score ${info.score}) against turning-point ages
+    ${info.ages.join(', ')}. Not a confirmed exact birth time.</p>`;
+}
+
 document.getElementById('birth-form').addEventListener('submit', (ev) => {
   ev.preventDefault();
   const Y = Number(document.getElementById('birth-year').value);
@@ -1262,8 +1560,84 @@ document.getElementById('birth-form').addEventListener('submit', (ev) => {
   const hour = Number(document.getElementById('birth-hour').value);
   const minute = Number(document.getElementById('birth-minute').value);
   const tz = Number(document.getElementById('birth-tz').value);
+  const gender = document.getElementById('birth-gender').value;
   currentPersonPillars = computeAndRender(Y, M, D, hour, minute, tz, document.getElementById('person-result'));
+  currentPersonGender = gender;
+  currentPersonJdUtc = localToUtcJD(Y, M, D, hour, minute, tz);
+  const dy = daYunSequence(currentPersonPillars, currentPersonJdUtc, gender === 'male');
+  document.getElementById('person-result').insertAdjacentHTML('beforeend', renderDaYun(dy, currentPersonPillars));
+  if (pendingRectifiedInfo) {
+    document.getElementById('person-result').insertAdjacentHTML('afterbegin', renderRectifiedBadge(pendingRectifiedInfo));
+    pendingRectifiedInfo = null;
+  }
   renderMomentCompare();
+});
+
+document.getElementById('unknown-time-toggle').addEventListener('change', (ev) => {
+  document.getElementById('rectify-panel').style.display = ev.target.checked ? 'block' : 'none';
+  document.getElementById('birth-hour').disabled = ev.target.checked;
+  document.getElementById('birth-minute').disabled = ev.target.checked;
+});
+
+document.getElementById('rectify-btn').addEventListener('click', () => {
+  const Y = Number(document.getElementById('birth-year').value);
+  const M = Number(document.getElementById('birth-month').value);
+  const D = Number(document.getElementById('birth-day').value);
+  const tz = Number(document.getElementById('birth-tz').value);
+  const gender = document.getElementById('birth-gender').value;
+  const period = document.getElementById('rectify-period').value;
+  const ages = document.getElementById('rectify-ages').value
+    .split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);
+  const resultEl = document.getElementById('rectify-result');
+  if (ages.length === 0) {
+    resultEl.innerHTML = '<p class="caveat">Enter at least one age (e.g. "22, 28, 35") to score candidates against.</p>';
+    return;
+  }
+
+  const candidates = RECTIFY_PERIOD_BRANCHES[period].map((branch) => {
+    const hour = BRANCH_REPRESENTATIVE_HOUR[branch];
+    const pillars = computeFourPillars(Y, M, D, hour, 0, tz);
+    const jdUtc = localToUtcJD(Y, M, D, hour, 0, tz);
+    const dy = daYunSequence(pillars, jdUtc, gender === 'male');
+    const timeline = turbulenceTimeline(pillars, dy, Y);
+    const scoreResult = scoreCandidateAgainstReportedAges(timeline, ages);
+    return { branch, hour, pillars, dy, scoreResult };
+  });
+  candidates.sort((a, b) => b.scoreResult.total - a.scoreResult.total);
+
+  let html = '<table class="rectify-table"><tr><th>时辰 Period</th><th>时柱 Hour Pillar</th><th>起运 Starts</th><th>匹配分 Score</th><th>依据 Basis</th><th></th></tr>';
+  candidates.forEach((c, idx) => {
+    const matchesHtml = c.scoreResult.matches.length
+      ? c.scoreResult.matches.map((m) => `age ${m.reportedAge}→${m.age} (${m.reasons.join(', ')})`).join('<br>')
+      : '<span class="flag-none">no correlation found</span>';
+    html += `<tr>
+      <td>${BRANCH_HOUR_RANGE[c.branch]} (${BRANCHES[c.branch]})</td>
+      <td>${c.pillars.hour.label}</td>
+      <td>age ${c.dy.startingAge.years}</td>
+      <td><strong>${c.scoreResult.total}</strong></td>
+      <td class="rectify-basis">${matchesHtml}</td>
+      <td><button class="use-btn" data-idx="${idx}" type="button">使用 Use</button></td>
+    </tr>`;
+  });
+  html += '</table>';
+  html += `<p class="caveat">Timing correlation only (not event type) — a best-fit heuristic, not a certainty.
+    Ties or close scores mean the data doesn't clearly distinguish candidates; more/older turning-point ages help.</p>`;
+  resultEl.innerHTML = html;
+
+  resultEl.querySelectorAll('.use-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const c = candidates[Number(btn.dataset.idx)];
+      pendingRectifiedInfo = { branch: c.branch, score: c.scoreResult.total, ages };
+      document.getElementById('unknown-time-toggle').checked = false;
+      document.getElementById('rectify-panel').style.display = 'none';
+      document.getElementById('birth-hour').disabled = false;
+      document.getElementById('birth-minute').disabled = false;
+      document.getElementById('birth-hour').value = c.hour;
+      document.getElementById('birth-minute').value = 0;
+      document.getElementById('birth-form').requestSubmit();
+      scrollToAndFlash(document.getElementById('person-result'));
+    });
+  });
 });
 
 // --- Moment panel ---------------------------------------------------------
@@ -1304,6 +1678,11 @@ function computeMoment() {
   const f = readMomentFields();
   lastMomentPillars = computeAndRender(f.Y, f.M, f.D, f.hour, f.minute, f.tz, document.getElementById('moment-result'));
   renderMomentCompare();
+  // Keep an already-cast hexagram in sync with the moment instead of
+  // silently going stale (e.g. after jumping to a new moment via Scan's
+  // "Use" button) — same "refresh if already shown" pattern as the
+  // 决定类型 category dropdown below.
+  if (document.getElementById('hexagram-result').innerHTML) renderHexagram();
 }
 
 document.getElementById('moment-form').addEventListener('submit', (ev) => {
@@ -1330,6 +1709,15 @@ function addHoursToLocal(Y, M, D, hour, minute, deltaHours) {
   return jdToGregorian(pseudoJD);
 }
 
+// Brief visual pulse so an update in a panel the user has scrolled away
+// from (e.g. Scan's "Use" button updating the Moment panel above it) is
+// actually noticeable, not silent.
+function scrollToAndFlash(el) {
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.add('flash-highlight');
+  setTimeout(() => el.classList.remove('flash-highlight'), 1500);
+}
+
 document.getElementById('scan-btn').addEventListener('click', () => {
   const resultEl = document.getElementById('scan-result');
   if (!currentPersonPillars) {
@@ -1353,7 +1741,8 @@ document.getElementById('scan-btn').addEventListener('click', () => {
   const top = candidates.slice(0, 10);
 
   const pad = (n) => String(n).padStart(2, '0');
-  let html = '<table class="scan-table"><tr><th>时刻 DateTime</th><th>四柱</th><th>评分 Score</th><th>关系 Flags</th><th></th></tr>';
+  let html = `<p class="caveat">Scanned ${candidates.length} candidate(s) (horizon=${horizon}), showing the top ${top.length} by score.</p>`;
+  html += '<table class="scan-table"><tr><th>时刻 DateTime</th><th>四柱</th><th>评分 Score</th><th>关系 Flags</th><th></th></tr>';
   top.forEach((c, idx) => {
     const dt = `${c.t.year}-${pad(c.t.month)}-${pad(c.t.day)} ${pad(c.t.hour)}:${pad(c.t.minute)}`;
     const pillarsStr = `${c.pillars.year.label} ${c.pillars.month.label} ${c.pillars.day.label} ${c.pillars.hour.label}`;
@@ -1380,6 +1769,7 @@ document.getElementById('scan-btn').addEventListener('click', () => {
       const c = top[Number(btn.dataset.idx)];
       fillMomentFieldsFromDate(c.t, start.tz);
       computeMoment();
+      scrollToAndFlash(document.getElementById('moment-panel'));
     });
   });
 });

@@ -174,7 +174,66 @@ reusing the same 六亲 words that label a line's identity *inside* the
 hexagram, which is a different comparison — fixed by introducing
 `RELATION_LABEL` as a separate vocabulary from `LIUQIN_LABEL`.
 
-## Publishing a copy
+## Birth-time rectification (Option A)
+
+For people who don't know their exact birth hour (common — most people
+know their birthday, few know the time). Rather than generating 12
+ambiguous candidate charts and leaving the user to guess (rejected —
+doesn't help decision-making, just turns the tool into a guessing game),
+this scores candidates against **when** (not what) the person remembers
+major life turning points happening:
+
+- `js/dayun.js` computes 大运 (decade luck pillars) — direction from
+  gender + year-stem polarity (阳男阴女顺排/阴男阳女逆排), starting age
+  from days-to-nearest-节 via 3天=1岁. Verified against a full worked
+  example (1954 lunar 九月初七丑时, male → starts age 2, sequence
+  甲戌/乙亥/丙子/丁丑/戊寅/己卯) — exact match, in `test/verify.js`.
+- A "turbulence timeline" flags ages where something structural lines up:
+  a new Da Yun starting, or Liu Nian (the annual pillar)/Da Yun clashing
+  the Day pillar, the Da Yun pillar itself, or the Hour pillar.
+- **Bug caught by testing, not by review:** the first version scored all
+  12 candidate hours *identically*. Da Yun keys off the month pillar and a
+  gender/year-based direction — neither depends on the hour — so within
+  one day, Da Yun content barely varies by candidate. Fixed by adding
+  Liu Nian/Da Yun clashes against the **Hour pillar** specifically (the
+  hour position is classically 子女宫, the children/legacy palace) — that's
+  the one pillar that actually changes per candidate. Guarded against
+  regressing back to identical scores in `test/verify.js`.
+- The UI (决定类型-style panel on the person form) lets the user enter a
+  few remembered turning-point ages, ranks candidate hours by fit, and
+  lets them adopt the best match with one click — resolving to a single
+  chart, not leaving multiple candidates open.
+- Once adopted, the person panel shows a clear "⏱ estimated via
+  rectification" badge (which slot, what score, against which ages) rather
+  than silently presenting an estimated hour as if it were a known fact.
+- Every computed person also gets a **运势曲线 life-cycle bar chart** —
+  each Da Yun decade's favorability against the Day Master (生扶/克泄 +
+  冲/合 vs. the day pillar, same scoring style as the Net Read), so the
+  classic "rise, peak, decline, low point, rebound" shape is visible at a
+  glance and can be sanity-checked against what the person already knows
+  about their own life. Also a heuristic — see the caveat next to it.
+
+## UX: keeping panels in sync
+
+An action in one panel that visibly changes a *different* panel needs
+explicit feedback, or it reads as broken even when it isn't:
+
+- The Scan and Rectification "使用/Use" buttons update the Moment panel
+  (Scan) or the birth-time fields (Rectification) — both now scroll that
+  target into view and give it a brief highlight flash
+  (`scrollToAndFlash()` in `js/app.js`), since those panels can be
+  off-screen from wherever you clicked "Use."
+- Scan's result table now states "Scanned N candidate(s) (horizon=X),
+  showing the top Y" — it always shows at most the top 10 by score (not
+  everything scanned), which wasn't visible before.
+- Casting a hexagram, then later changing the moment (typing a new
+  date/time, "现在 Now," or either "Use" button), used to leave the
+  hexagram silently showing the *old* moment. `computeMoment()` now
+  re-runs `renderHexagram()` automatically if one is already on screen —
+  same "refresh if already shown" pattern the 决定类型 category dropdown
+  already used.
+
+## Publishing a copy — bundling in one file
 
 `js/*.js` + `index.html` + `style.css` stay as the working source — don't
 edit `dist/index.html` directly, it's generated. To get a single
@@ -186,17 +245,47 @@ node build/bundle.js
 ```
 
 This writes `dist/index.html` with `style.css` and all of `js/*.js` inlined.
-Re-run it after any change to those files before copying `dist/index.html`
-elsewhere. This is a stopgap for while the tool is still in progress —
-revisit with a proper multi-file GitHub Pages setup once it's more settled.
+Re-run it after any change to those files (including adding a new js/*.js
+file — update the `jsFiles` list in `build/bundle.js` too) before copying
+`dist/index.html` elsewhere. This is a stopgap for while the tool is still
+in progress — revisit with a proper multi-file GitHub Pages setup once
+it's more settled.
+
+## Release notes
+
+### 2026-08-25 to 2026-08-27
+
+- Single-file bundler (`build/bundle.js` → `dist/index.html`) for manual
+  publishing before this has its own repo/CI.
+- **Birth-time rectification** (see that section above): a verified 大运
+  engine, timing-correlation scoring against user-reported turning-point
+  ages, gender + "不确定具体时辰" UI, and a "⏱ estimated via
+  rectification" badge once a candidate is adopted — resolves to one
+  chart rather than leaving several ambiguous candidates open.
+- **运势曲线 life-cycle chart** — each Da Yun decade's favorability
+  against the Day Master, shown as a bar chart on every computed person.
+- Three real bugs caught by testing/user feedback before or shortly after
+  shipping, all now guarded by regression tests where applicable:
+  1. Rectification scored all 12 candidate hours identically (Da Yun
+     doesn't depend on the hour) — fixed via Hour-pillar/子女宫 clash
+     signals.
+  2. Scan/Rectification "Use" buttons silently updated an off-screen
+     panel, reading as broken.
+  3. A cast hexagram could silently go stale after the moment changed.
+- Roadmap note added: a beginner-facing primer is needed before sharing
+  this beyond personal use (e.g. with Broadcom colleagues) — not started.
 
 ## Next steps
 
 1. Implement 用神多现 tie-breaking.
-2. Revisit whether to offer real randomness (coin-cast) as an alternative
+2. **应期 (timing prediction)** — the original motivating idea ("not just
+   favorable, but *when*") still isn't built. `js/dayun.js`'s Liu
+   Nian/clash-timeline machinery (built for rectification) is likely
+   reusable groundwork here.
+3. Revisit whether to offer real randomness (coin-cast) as an alternative
    to the deterministic time-based method — open question, not decided.
-3. Try the tool with a real person's birth data instead of a placeholder.
-4. Before sharing this beyond personal use (e.g. with Broadcom colleagues):
+4. Try the tool with a real person's birth data instead of a placeholder.
+5. Before sharing this beyond personal use (e.g. with Broadcom colleagues):
    write a plain-language "how to read this" primer for people with zero
    I-Ching background — what BaZi/a hexagram *are*, glosses next to the
    remaining jargon (用神/六亲/世应 don't have any yet, unlike 合/冲), and
