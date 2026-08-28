@@ -207,11 +207,101 @@ major life turning points happening:
   rectification" badge (which slot, what score, against which ages) rather
   than silently presenting an estimated hour as if it were a known fact.
 - Every computed person also gets a **运势曲线 life-cycle bar chart** —
-  each Da Yun decade's favorability against the Day Master (生扶/克泄 +
-  冲/合 vs. the day pillar, same scoring style as the Net Read), so the
+  each Da Yun decade's favorability, shown as rise/fall bars so the
   classic "rise, peak, decline, low point, rebound" shape is visible at a
   glance and can be sanity-checked against what the person already knows
   about their own life. Also a heuristic — see the caveat next to it.
+
+### Correction: favorability depends on 身强/身弱, not "support = good"
+
+Tested against a real person's life history (born 1960-12-02, afternoon,
+female — PhD late 20s, career took off late 30s, career **peak** late
+40s (co-chair of a national women's computing society + senior director),
+**setback**/job loss mid-50s, recovery after) and the chart read "quite
+the opposite" of reality. Root cause: the original version always treated
+"elements that support the Day Master" as favorable — true only for a
+*weak* Day Master. For a *strong* one it's backwards: 身强用泄用克，身弱用
+生用扶 (a strong Day Master benefits from what drains/restrains it; a weak
+one from what supports it) — arguably the single most foundational
+judgment in BaZi, and the original version skipped it entirely.
+
+Fixed by adding:
+- **身强身弱 determination** — 得令 (is the month branch the Day Master's
+  own season?), 得地 (is the Day Master's element rooted in the year/day/
+  hour branches, via hidden stems?), 得势 (do the other stems support it?)
+  — strong if 2 of 3 pass, per the verified classical rule.
+- **地支藏干 (hidden stems)** — each branch's 1-3 hidden stems, weighted
+  (100 / 70-30 / 60-30-10). Without these, a branch like 未 (surface
+  element 土) or 巳 (surface 火) can't reveal the root/pressure they
+  actually carry (未 hides 乙木; 巳 hides 庚金) — directly relevant to why
+  her chart read wrong before.
+- Both verified via search, cross-checking a corrupted source against an
+  independent one before trusting either (the first hidden-stems source
+  found gave 子 three stems and 卯 two, contradicting the most basic,
+  universally-taught form of the table — rejected).
+
+Result: her two peak-career decades went from flat 0 (wrong) to
+positive, while her setback decade (already correctly flagged as the
+worst point via a day-pillar clash) stayed the worst point — a real,
+checked improvement, now guarded by an empirical regression test (labeled
+as such — a real biography isn't a verified classical fact the way the
+rest of this test suite's anchors are, but it's still worth protecting).
+
+**Known remaining limitation:** 得令 here only credits the Day Master's
+own season (e.g. Wood → 寅/卯). A broader classical reading also credits
+the season that *generates* the Day Master's element (相, via the full
+旺相休囚死 five-stage framework) — a second search surfaced this but gave
+a definition I couldn't verify confidently in the time available, so it
+was flagged rather than guessed into the code. Worth revisiting.
+
+### Agreement indicator + two rejected hypotheses (from 4 real test cases)
+
+Tested against 4 real people's charts (2 male, 2 female; 2 weak Day
+Masters, 2 strong) before touching the formula again — see conversation
+history for full detail. Two plausible-looking fixes were tried and
+**rejected** because they helped one case while breaking another, which is
+worth recording so they aren't re-tried without new evidence:
+
+- **"Weight stems more than hidden branch stems"** — rejected. A search
+  actually found the opposite classical emphasis ("得天干三比劫，不如得
+  地支一本气根" — three stems of peer support isn't as good as one proper
+  branch root); a stem without a matching root is considered "虚" (empty).
+- **"Discount a stem's weight when it lacks a matching root (通根)"** —
+  also plausible, also verified in principle, but checked against all 4
+  cases: it would improve one case's mismatch while making another
+  case's *correctly-favorable* period read as unfavorable. Two real cases,
+  opposite effects — a sign of fitting noise, not finding a rule.
+
+What shipped instead: an **agreement indicator** (✓/⚠/–) comparing the
+element-based score's sign against the 十二长生 stage's verified
+"four favorable / four adverse / four neutral" grouping
+(长生冠带临官帝旺 favorable; 沐浴死墓绝 adverse; 衰病胎养 neutral). It
+does **not** try to resolve disagreements — it just flags when the two
+lenses point the same way (higher confidence) vs. opposite ways (⚠, use
+extra judgment) vs. one/both being near-neutral. Checked against the 4
+test cases: it correctly flagged the specific disagreements found by hand
+(e.g. his 60-70 decade — score unfavorable, stage 临官/favorable, real
+report "still working and growing" — and her 18-28 decade — score
+unfavorable, stage 冠带/favorable, real report a top-tier college
+graduation + immediate job).
+
+### 十二长生 (Twelve Growth Stages) — a second, deliberately separate lens
+
+Nian pointed out a *different* missing classical framework: the Day
+Master's own birth-to-death vitality cycle across all 12 branches
+(长生→沐浴→冠带→临官→帝旺→衰→病→死→墓→绝→胎→养, cycling back to birth —
+the "seed to tree to death" shape). Verified via search (阳干长生起于
+四隅寅申巳亥顺行，阴干长生起于四正子午卯酉逆行) and cross-checked exactly
+against a fully-quoted 12-branch example for 甲.
+
+Added as a **separate gray tag** under each Da Yun bar, not blended into
+the favorability score — because checking it against the same real chart
+showed it doesn't always agree with the element/hidden-stems analysis.
+Her actual career-peak decade (38-48) reads 墓 ("tomb") under this lens,
+one of the classically weaker stages, even though it scores favorable on
+the element side (未's hidden 乙木 root). Reconciling two classical lenses
+that disagree is real practitioner judgment, not something to fake as one
+number — so both are shown side by side instead.
 
 ## UX: keeping panels in sync
 
@@ -232,6 +322,54 @@ explicit feedback, or it reads as broken even when it isn't:
   re-runs `renderHexagram()` automatically if one is already on screen —
   same "refresh if already shown" pattern the 决定类型 category dropdown
   already used.
+
+## 喜用神建议 (favorable-element suggestions)
+
+Answers "given a fixed BaZi, does the tradition offer any way to act on
+it?" — yes, classically: adjusting environment/direction/career toward a
+person's favorable elements (喜用神) is a real, longstanding practice
+(distinct from, but complementary to, the 择日/timing focus of the rest of
+this tool). Shown on every computed person, right after the life-cycle
+chart: favorable elements to lean toward and unfavorable ones to reduce
+exposure to (not avoid entirely), each with direction/color/season.
+
+Confidence varies by field, and the UI says so: direction, color, and
+season are bedrock Wu Xing correspondences (as certain as "2020 is
+庚子年," no verification needed). Career-theme suggestions are explicitly
+flagged as the soft part — illustrative, not a fixed convention; different
+sources give different lists. The panel also points back at the
+Moment/Scan features as the more actionable lever — you can't change your
+favorable elements, but 择日 (choosing when to act) is something this tool
+already helps with directly.
+
+## 环境周期 Environment Cycle — experimental, non-classical extension
+
+Addresses the weakest of the original three pillars (person, time, and
+*context* — the decision's environment was stuck at a fixed dropdown
+category). Explicitly **not** claimed as classical I-Ching/BaZi — it's a
+reasoned synthesis applying the tradition's own method of reading cycles
+through Wu Xing (used classically for dynastic succession, 五德终始说, and
+for the body in Chinese medicine) to a real-world cycle the user
+describes, e.g. a market, an industry, a project's funding climate.
+
+- **Off by default**, an explicit opt-in checkbox — with it off, the tool
+  behaves exactly as before.
+- **The user judges the phase, not the tool** — no attempt to infer market
+  conditions from data; you supply your own read of a 5-phase cycle
+  (萌芽/复苏→上升/扩张→转折/盘整→下降/收缩→低谷/蛰伏, mapped to
+  木/火/土/金/水), and the tool only translates it into element language.
+- **Multiple independent scopes, never averaged** — added specifically
+  because a big-picture cycle and a narrower one inside it can be in
+  different phases at once (the overall market expanding while one
+  industry within it is late-stage contracting). Each row gets its own
+  fit read against the person's favorable elements (reuses
+  `favorableElementsFor` — no new classification logic, just a new
+  reference point).
+- Visibly labeled "EXPERIMENTAL — not classical I-Ching" in the UI, and
+  kept as a separate block rather than merged into the Net Read's score —
+  same principle as the 十二长生 agreement indicator: don't fake
+  precision when combining things that don't have a verified combination
+  rule.
 
 ## Publishing a copy — bundling in one file
 
@@ -275,6 +413,37 @@ it's more settled.
 - Roadmap note added: a beginner-facing primer is needed before sharing
   this beyond personal use (e.g. with Broadcom colleagues) — not started.
 
+### 2026-08-27 (continued): body-strength correction, 十二长生, and the Environment Cycle extension
+
+Prompted by testing against 4 real people's charts and biographies (see
+sections above for full detail):
+
+- **Fixed a real, meaningful bug**: Da Yun favorability was scoring
+  "supportive of the Day Master" as always favorable — backwards for a
+  strong Day Master. Added verified 身强身弱 determination (得令/得地/得势)
+  and 地支藏干 (hidden stems); a real person's flat-zero career-peak
+  decades moved to correctly positive.
+- **Two plausible reweighting fixes tried and explicitly rejected** after
+  checking them against all 4 test cases — documented so they aren't
+  re-tried on the same evidence (see "Agreement indicator" section above).
+- **十二长生** (the Day Master's own birth-to-death vitality cycle) added
+  as a second, deliberately separate lens, plus an **agreement indicator**
+  (✓/⚠/–) showing when it agrees or conflicts with the element-based
+  score — no attempt to force them into one number.
+- **喜用神建议 panel** — direction/color/season/career suggestions per
+  person's favorable elements, answering "does the tradition offer any way
+  to act on a fixed BaZi" (yes, classically — environment/direction
+  adjustment, alongside 择日 timing, which this tool already does).
+- **环境周期 Environment Cycle** — an explicitly experimental,
+  non-classical extension mapping a user-judged real-world cycle (market,
+  industry, project) onto Wu Xing, compared against the person's favorable
+  elements. Off by default; supports multiple independent scopes so a
+  big-picture cycle and a narrower one inside it can disagree without
+  being averaged away.
+- The 决定类型 (decision-type) dropdown moved from the hexagram panel to
+  the top of the Environment panel, so choosing it primes which
+  environment scopes actually make sense to describe.
+
 ## Next steps
 
 1. Implement 用神多现 tie-breaking.
@@ -284,8 +453,17 @@ it's more settled.
    reusable groundwork here.
 3. Revisit whether to offer real randomness (coin-cast) as an alternative
    to the deterministic time-based method — open question, not decided.
-4. Try the tool with a real person's birth data instead of a placeholder.
-5. Before sharing this beyond personal use (e.g. with Broadcom colleagues):
+4. The broader 得令 reading (旺相休囚死, crediting the season that
+   *generates* the Day Master's element, not just its own season) —
+   surfaced by search but not verified confidently enough to implement.
+5. If pursuing more empirical validation: published classical case
+   compendia (滴天髓, 子平真诠, 穷通宝鉴) would give denser, larger-N
+   material than one-off personal biographies — worth researching whether
+   a usable digitized source exists, rather than continuing to test one
+   person at a time. Real, tested against 4 people so far — see the
+   "Correction" and "Agreement indicator" sections above for what that
+   surfaced (one real bug fixed, two plausible fixes rejected).
+6. Before sharing this beyond personal use (e.g. with Broadcom colleagues):
    write a plain-language "how to read this" primer for people with zero
    I-Ching background — what BaZi/a hexagram *are*, glosses next to the
    remaining jargon (用神/六亲/世应 don't have any yet, unlike 合/冲), and

@@ -164,7 +164,7 @@ tr.moving-line .yao-yin span { background: #b8860b; }
   margin-bottom: 0.8rem;
 }
 
-.dayun-chart { display: flex; align-items: flex-end; gap: 0.6rem; height: 6rem; margin: 0.6rem 0 1rem; }
+.dayun-chart { display: flex; align-items: flex-end; gap: 0.6rem; height: 8.3rem; margin: 0.6rem 0 1rem; }
 .dayun-bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; flex: 1; }
 .dayun-bar-track { display: flex; align-items: flex-end; height: 4.2rem; width: 1.4rem; }
 .dayun-bar { width: 100%; border-radius: 2px 2px 0 0; }
@@ -172,6 +172,30 @@ tr.moving-line .yao-yin span { background: #b8860b; }
 .bar-unfavorable { background: #e57373; }
 .bar-neutral { background: #ccc; }
 .dayun-bar-label { font-size: 0.7rem; color: #666; text-align: center; margin-top: 0.3rem; line-height: 1.2; }
+.dayun-stage-tag {
+  font-size: 0.68rem; color: #555; background: #eee; border-radius: 3px;
+  padding: 0.05rem 0.35rem; margin-top: 0.25rem;
+}
+.dayun-agreement { font-size: 0.85rem; font-weight: 700; margin-top: 0.2rem; cursor: help; }
+
+.remedies-cols { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
+.remedies-cols > div { flex: 1; min-width: 14rem; }
+.remedies-cols ul { padding-left: 1.1rem; margin: 0.3rem 0; }
+.remedies-cols li { margin-bottom: 0.6rem; font-size: 0.9rem; }
+
+.experimental-badge {
+  display: inline-block; font-size: 0.65rem; font-weight: 700; color: #b8860b;
+  border: 1px solid #b8860b; border-radius: 3px; padding: 0.1rem 0.4rem; margin-left: 0.5rem; vertical-align: middle;
+}
+#environment-panel { background: #fffaf0; }
+.env-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; }
+.env-row input[type="text"] { flex: 1; min-width: 12rem; padding: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+.env-fit-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; border-radius: 3px; padding: 0.1rem 0.4rem; }
+.env-fit-supportive { background: #eef7ee; color: #2e7d32; }
+.env-fit-adverse { background: #fdeeee; color: #c62828; }
+.agreement-agree { color: #2e7d32; }
+.agreement-tension { color: #b8860b; }
+.agreement-neutral { color: #bbb; }
 
 .flash-highlight { animation: flash-pulse 1.5s ease-out; }
 @keyframes flash-pulse {
@@ -306,15 +330,9 @@ tr.moving-line .yao-yin span { background: #b8860b; }
     <div id="moment-compare" class="result"></div>
   </section>
 
-  <section class="panel" id="hexagram-panel">
-    <h2>起卦 — Cast a Hexagram for this Moment <button id="cast-btn" type="button">起卦 Cast</button></h2>
-    <p class="caveat">
-      Deterministic 梅花易数 time-based casting (年月日时起卦法) from the Moment panel's
-      date/time above — no randomness. Lunar month/day are computed using China Standard
-      Time civil dates regardless of the Moment panel's timezone field, matching classical
-      practice. If the person's Four Pillars are computed, each line is also checked against
-      their Day Master and day branch.
-    </p>
+  <section class="panel" id="environment-panel">
+    <h2>环境周期 — Environment Cycle <span class="experimental-badge">EXPERIMENTAL — not classical I-Ching</span></h2>
+
     <div class="field-row">
       <label>决定类型 What kind of decision is this?
         <select id="yong-shen-category">
@@ -328,6 +346,44 @@ tr.moving-line .yao-yin span { background: #b8860b; }
         </select>
       </label>
     </div>
+    <p class="caveat">
+      Set this first — it's not experimental (it drives 用神 selection for the hexagram below), but it should
+      also frame which environment scopes make sense to describe. A wealth/investment decision calls for a
+      market-related scope; a career decision calls for a job-market or industry one — not the other way around.
+    </p>
+
+    <p class="caveat">
+      Below this is a reasoned extension, not something in the classical texts: it applies the tradition's own
+      method of reading cycles through Wu Xing (used classically for dynastic succession, 五德终始说, and for the
+      body in Chinese medicine) to a real-world cycle you describe — a market, an industry, a project's funding
+      climate, anything with a recognizable cycle shape. <strong>Off by default</strong> — with it off, the rest
+      of the tool behaves exactly as before. You judge the phase; the tool only translates it into the same
+      Five-Element language the rest of the engine already speaks.
+    </p>
+    <label class="unknown-time-toggle">
+      <input type="checkbox" id="environment-enable"> 启用此实验性功能 Enable this experimental layer
+    </label>
+    <div id="environment-body" style="display:none">
+      <p class="caveat">
+        Add one row per scope you want to check — a big-picture cycle and a narrower one within it can be in
+        different phases at the same time (e.g. the overall market expanding while one industry inside it is
+        late-stage contracting). Each row is read independently, never averaged together.
+      </p>
+      <div id="environment-rows"></div>
+      <button id="environment-add-row" type="button">+ 添加范围 Add a scope</button>
+      <div id="environment-fit-result" class="result"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="hexagram-panel">
+    <h2>起卦 — Cast a Hexagram for this Moment <button id="cast-btn" type="button">起卦 Cast</button></h2>
+    <p class="caveat">
+      Deterministic 梅花易数 time-based casting (年月日时起卦法) from the Moment panel's
+      date/time above — no randomness. Lunar month/day are computed using China Standard
+      Time civil dates regardless of the Moment panel's timezone field, matching classical
+      practice. If the person's Four Pillars are computed, each line is also checked against
+      their Day Master and day branch. 决定类型 (which line becomes 用神) is set in the Environment panel above.
+    </p>
     <div id="hexagram-result" class="result"></div>
   </section>
 
@@ -720,6 +776,163 @@ function classifyElementsRelativeTo(elements, referenceElement) {
   const supportive = roles.peer + roles.resource;
   const draining = roles.output + roles.wealth + roles.pressure;
   return { counts, roles, supportive, draining };
+}
+
+// --- 地支藏干 (hidden stems) ----------------------------------------------
+// Verified: cross-checked that 子/卯/酉 have exactly ONE hidden stem each
+// (their own pure element), 午/亥 have exactly TWO, and the remaining 7
+// branches have THREE — an initial web source disagreed with this (gave
+// 子 three stems, 卯 two) and was rejected as corrupted after a second,
+// independent search confirmed the 1/2/3 pattern. Weights (本气/中气/余气)
+// use a commonly-cited convention (100 / 70-30 / 60-30-10) — schools vary
+// on exact percentages but agree on the ordering; treat as illustrative.
+// Stem indices: 甲0 乙1 丙2 丁3 戊4 己5 庚6 辛7 壬8 癸9.
+const HIDDEN_STEMS = [
+  [{ stem: 9, weight: 1.0 }],                                                 // 子: 癸
+  [{ stem: 5, weight: 0.6 }, { stem: 7, weight: 0.3 }, { stem: 9, weight: 0.1 }], // 丑: 己辛癸
+  [{ stem: 0, weight: 0.6 }, { stem: 2, weight: 0.3 }, { stem: 4, weight: 0.1 }], // 寅: 甲丙戊
+  [{ stem: 1, weight: 1.0 }],                                                 // 卯: 乙
+  [{ stem: 4, weight: 0.6 }, { stem: 1, weight: 0.3 }, { stem: 9, weight: 0.1 }], // 辰: 戊乙癸
+  [{ stem: 2, weight: 0.6 }, { stem: 6, weight: 0.3 }, { stem: 4, weight: 0.1 }], // 巳: 丙庚戊
+  [{ stem: 3, weight: 0.7 }, { stem: 5, weight: 0.3 }],                       // 午: 丁己
+  [{ stem: 5, weight: 0.6 }, { stem: 3, weight: 0.3 }, { stem: 1, weight: 0.1 }], // 未: 己丁乙
+  [{ stem: 6, weight: 0.6 }, { stem: 8, weight: 0.3 }, { stem: 4, weight: 0.1 }], // 申: 庚壬戊
+  [{ stem: 7, weight: 1.0 }],                                                 // 酉: 辛
+  [{ stem: 4, weight: 0.6 }, { stem: 7, weight: 0.3 }, { stem: 3, weight: 0.1 }], // 戌: 戊辛丁
+  [{ stem: 8, weight: 0.7 }, { stem: 0, weight: 0.3 }],                       // 亥: 壬甲
+];
+
+// --- 得令: which branches are each element's own prospering season -------
+// Verified via search. Branch indices: 子0丑1寅2卯3辰4巳5午6未7申8酉9戌10亥11.
+const SEASON_WANG = { 木: [2, 3], 火: [5, 6], 土: [1, 4, 7, 10], 金: [8, 9], 水: [0, 11] };
+
+// --- 身强身弱 (Day Master strength): 得令/得地/得势, 2-of-3 rule ----------
+// Verified method. NOTE: this is the simpler/stricter reading of 得令 (own
+// season only) — a broader reading also credits the season that GENERATES
+// the Day Master's element (相), which would matter for e.g. a Wood Day
+// Master born in a Water month. Not implemented: the full 旺相休囚死
+// five-stage seasonal framework needed to do that correctly couldn't be
+// verified confidently in this session (a second search gave a materially
+// different, unverified definition) — flagged rather than guessed.
+function determineDayMasterStrength(pillars) {
+  const dmElement = pillars.day.stemElement;
+  const monthBranchIdx = BRANCHES.indexOf(pillars.month.branch);
+
+  const deLing = SEASON_WANG[dmElement].includes(monthBranchIdx);
+
+  const rootBranchIdxs = [pillars.year.branch, pillars.day.branch, pillars.hour.branch]
+    .map((b) => BRANCHES.indexOf(b));
+  let rootWeight = 0;
+  rootBranchIdxs.forEach((bIdx) => {
+    HIDDEN_STEMS[bIdx].forEach((h) => {
+      if (STEM_ELEMENT[h.stem] === dmElement) rootWeight += h.weight;
+    });
+  });
+  const deDi = rootWeight > 0;
+
+  const otherStemIdxs = [pillars.year.stem, pillars.month.stem, pillars.hour.stem]
+    .map((s) => STEMS.indexOf(s));
+  const supportCount = otherStemIdxs.filter((sIdx) => {
+    const el = STEM_ELEMENT[sIdx];
+    return el === dmElement || GENERATES[el] === dmElement;
+  }).length;
+  const deShi = supportCount > 0;
+
+  const passCount = [deLing, deDi, deShi].filter(Boolean).length;
+  return { deLing, deDi, deShi, rootWeight, supportCount, isStrong: passCount >= 2 };
+}
+
+// --- 十二长生 (Twelve Growth Stages) --------------------------------------
+// The Day Master's own vitality across all 12 branches, as a life-cycle
+// narrative (长生=birth ... 帝旺=peak ... 死/墓/绝=decline ... 胎/养=
+// gestation, cycling back to birth). Verified via search (阳干长生起于
+// 四隅寅申巳亥顺行，阴干长生起于四正子午卯酉逆行) and cross-checked
+// against a fully-quoted 12-branch example for 甲 — exact match.
+//
+// Deliberately NOT merged into daYunFavorability's score: this is a
+// different classical lens from the 得地/藏干 element analysis, and the
+// two don't always agree (checked against a real chart — a decade's
+// element score can be favorable while its 十二长生 stage reads as 墓
+// "tomb"). Reconciling conflicting lenses is real practitioner judgment,
+// not something to fake as one number — shown as a separate label so
+// both are visible.
+const TWELVE_STAGES = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'];
+const STAGE_START_BRANCH = { 甲: 11, 丙: 2, 戊: 2, 庚: 5, 壬: 8, 乙: 6, 丁: 9, 己: 9, 辛: 0, 癸: 3 };
+const STAGE_FORWARD = { 甲: true, 丙: true, 戊: true, 庚: true, 壬: true, 乙: false, 丁: false, 己: false, 辛: false, 癸: false };
+
+function twelveStageForBranch(dayStem, branchIdx) {
+  const start = STAGE_START_BRANCH[dayStem];
+  const forward = STAGE_FORWARD[dayStem];
+  const diff = forward ? (branchIdx - start + 12) % 12 : (start - branchIdx + 12) % 12;
+  return TWELVE_STAGES[diff];
+}
+
+// 四旺/四衰/四平 grouping — verified via search, cross-referenced against
+// multiple sources' "four prosperous / four adverse / four ordinary"
+// framework (长生冠带临官帝旺 favorable; 沐浴死墓绝 adverse; 衰病胎养
+// neutral).
+const STAGE_VALENCE = {
+  长生: 1, 冠带: 1, 临官: 1, 帝旺: 1,
+  沐浴: -1, 死: -1, 墓: -1, 绝: -1,
+  衰: 0, 病: 0, 胎: 0, 养: 0,
+};
+
+// Agreement between the element-based score and the 十二长生 stage.
+// Deliberately does NOT try to resolve disagreements or blend them into
+// one number — checked against 4 real charts and a plausible-looking
+// reweighting helped one case while breaking another, so this only
+// reports whether the two lenses point the same way, not which is right.
+function stageScoreAgreement(score, stage) {
+  const stageVal = STAGE_VALENCE[stage];
+  const scoreVal = score > 0.3 ? 1 : score < -0.3 ? -1 : 0;
+  if (scoreVal === 0 || stageVal === 0) {
+    return { level: 'neutral', label: 'one or both signals near-neutral' };
+  }
+  if (scoreVal === stageVal) {
+    return {
+      level: 'agree',
+      label: scoreVal > 0 ? 'both lenses lean favorable' : 'both lenses lean cautious',
+    };
+  }
+  return { level: 'tension', label: 'signals disagree — use extra judgment here' };
+}
+
+// --- 喜用神 remedies: environment/timing suggestions -----------------------
+// Bedrock Wu Xing correspondences (direction, color, season) — as
+// foundational and undisputed as "2020 is 庚子年," no verification search
+// needed. Career themes are explicitly the SOFT part: illustrative, not
+// a citable convention — different sources give different lists.
+const ELEMENT_DIRECTION = { 木: '东 East', 火: '南 South', 土: '中央 Center', 金: '西 West', 水: '北 North' };
+const ELEMENT_COLOR_NAME = { 木: '绿/青 Green', 火: '红 Red', 土: '黄/棕 Yellow/Brown', 金: '白/金 White/Gold', 水: '黑/蓝 Black/Blue' };
+const ELEMENT_SEASON_NAME = { 木: '春 Spring', 火: '夏 Summer', 土: '季节交替 Season transitions', 金: '秋 Autumn', 水: '冬 Winter' };
+const ELEMENT_CAREER_THEME = {
+  木: '教育/成长/环保/木业/医药 — education, growth, environment, wood-adjacent trades, medicine',
+  火: '能源/传媒娱乐/餐饮/电子 — energy, media/entertainment, food service, electronics, visibility-driven work',
+  土: '房地产/农业/建筑/保险中介 — real estate, agriculture, construction, insurance/brokering',
+  金: '金融/机械/珠宝/法律/工程 — finance, machinery, precision goods, law, engineering',
+  水: '贸易/物流/传媒咨询/旅游 — trade, logistics, communication/consulting, travel',
+};
+
+// Given a person's pillars, the concrete elements (not roles) that are
+// favorable/unfavorable per their 身强身弱 — reuses determineDayMasterStrength,
+// just translated from roles back to absolute elements for display.
+function favorableElementsFor(pillars) {
+  const dm = pillars.day.stemElement;
+  const strength = determineDayMasterStrength(pillars);
+  const roleToElement = {
+    peer: dm,
+    resource: reverseLookup(GENERATES, dm),
+    output: GENERATES[dm],
+    wealth: OVERCOMES[dm],
+    pressure: reverseLookup(OVERCOMES, dm),
+  };
+  const favorableRoles = strength.isStrong ? ['output', 'wealth', 'pressure'] : ['peer', 'resource'];
+  const unfavorableRoles = strength.isStrong ? ['peer', 'resource'] : ['output', 'wealth', 'pressure'];
+  return {
+    strength,
+    favorable: favorableRoles.map((r) => roleToElement[r]),
+    unfavorable: unfavorableRoles.map((r) => roleToElement[r]),
+  };
 }
 
 // --- Simplified five-element balance -------------------------------------
@@ -1376,26 +1589,51 @@ function turbulenceTimeline(pillars, dayun, birthCalendarYear, maxAge = 80) {
 }
 
 // --- Life-cycle favorability curve --------------------------------------
-// Classical framing: a Da Yun period's quality is read primarily against
-// the Day Master (喜用神 — is this decade's element what the Day Master
-// needs, or does it clash/drain it), not against the whole natal chart.
-// Reuses the same classify/clash/harmony machinery as everywhere else in
-// this tool — no new unverified constants, just applied over a new axis
-// (each decade instead of the 8 natal characters).
+// Classical framing, corrected: whether "support" or "drain" is favorable
+// for a Da Yun period depends on whether the person's Day Master is 身强
+// (strong) or 身弱 (weak) — 身强用泄用克 (a strong DM benefits from
+// output/wealth/pressure, which drain/restrain the excess), 身弱用生用扶
+// (a weak DM benefits from resource/peer). An earlier version always
+// treated "supportive of the Day Master" as favorable, which is exactly
+// backwards for anyone with a strong Day Master — found by testing against
+// a real person's life history (see conversation/skill notes), not by
+// inspection. Also now reads each Da Yun pillar's BRANCH via its weighted
+// hidden stems (地支藏干), not just its single "main" element — e.g. 未's
+// hidden 乙木 or 巳's hidden 庚金 change the read, which the old
+// single-element version couldn't see at all.
+function roleRelativeToDayMaster(element, dayMasterElement) {
+  const rel = classifyElementsRelativeTo([element], dayMasterElement);
+  return Object.keys(rel.roles).find((r) => rel.roles[r] === 1);
+}
+
+function weightedFavorabilityScore(stemIdx, branchIdx, dayMasterElement, favorableRoles) {
+  let score = favorableRoles.includes(roleRelativeToDayMaster(STEM_ELEMENT[stemIdx], dayMasterElement)) ? 1 : -1;
+  HIDDEN_STEMS[branchIdx].forEach((h) => {
+    const role = roleRelativeToDayMaster(STEM_ELEMENT[h.stem], dayMasterElement);
+    score += (favorableRoles.includes(role) ? 1 : -1) * h.weight;
+  });
+  return score;
+}
+
 function daYunFavorability(dayun, pillars) {
   const dayMasterElement = pillars.day.stemElement;
+  const strength = determineDayMasterStrength(pillars);
+  const favorableRoles = strength.isStrong ? ['output', 'wealth', 'pressure'] : ['peer', 'resource'];
   const dayBranchIdx = BRANCHES.indexOf(pillars.day.branch);
+
   return dayun.sequence.map((period) => {
-    const rel = classifyElementsRelativeTo(
-      [period.pillar.stemElement, period.pillar.branchElement],
-      dayMasterElement
-    );
-    const elementScore = rel.supportive - rel.draining;
+    const stemIdx = STEMS.indexOf(period.pillar.stem);
     const periodBranchIdx = BRANCHES.indexOf(period.pillar.branch);
+    const elementScore = weightedFavorabilityScore(stemIdx, periodBranchIdx, dayMasterElement, favorableRoles);
     const clash = branchClashPartnerIdx(dayBranchIdx) === periodBranchIdx;
     const harmony = BRANCH_SIX_HARMONY_PARTNER[dayBranchIdx] === periodBranchIdx;
-    const score = elementScore + (clash ? -1.5 : 0) + (harmony ? 1 : 0);
-    return { ...period, score, clash, harmony };
+    const score = Math.round((elementScore + (clash ? -1.5 : 0) + (harmony ? 1 : 0)) * 10) / 10;
+    // 十二长生 stage — a separate classical lens, deliberately not folded
+    // into `score` (see bazi.js comment on twelveStageForBranch). Instead,
+    // `agreement` reports whether the two lenses point the same way.
+    const stage = twelveStageForBranch(pillars.day.stem, periodBranchIdx);
+    const agreement = stageScoreAgreement(score, stage);
+    return { ...period, score, clash, harmony, strength, stage, agreement };
   });
 }
 
@@ -1418,6 +1656,47 @@ function scoreCandidateAgainstReportedAges(timeline, reportedAges, toleranceYear
     if (best) { total += best.weight; matches.push(best); }
   });
   return { total: Math.round(total * 10) / 10, matches };
+}
+
+// --- environment.js ---
+// environment.js — EXPERIMENTAL, non-classical extension. Maps a
+// user-described real-world cycle (a market, an industry, a project's
+// funding environment, anything with a recognizable cycle shape) onto the
+// Five-Element framework, so it can be compared against a person's
+// favorable elements using the same generate/overcome machinery as
+// everywhere else in this tool.
+//
+// This is NOT found in classical I-Ching/BaZi literature — it's a
+// reasoned synthesis, applying the tradition's own METHOD of reading
+// cycles through Wu Xing (used classically for dynastic succession,
+// 五德终始说, and for the body in Chinese medicine) to a new domain. Kept
+// deliberately opt-in, clearly labeled, and never merged into the
+// Net Read's score — see app.js.
+//
+// Deliberately supports MULTIPLE independent entries rather than one
+// flattened "the environment is X" answer: a scope can be in a different
+// phase than the larger system it sits inside (the overall market can be
+// expanding while one industry within it is in late-stage contraction) —
+// each entry is read on its own, not averaged together.
+
+const ENV_PHASES = [
+  { key: 'recovery', label: '萌芽/复苏 Early recovery', element: '木' },
+  { key: 'expansion', label: '上升/扩张 Expansion', element: '火' },
+  { key: 'turning', label: '转折/盘整 Turning point', element: '土' },
+  { key: 'contraction', label: '下降/收缩 Contraction', element: '金' },
+  { key: 'trough', label: '低谷/蛰伏 Trough', element: '水' },
+];
+
+function envPhaseElement(phaseKey) {
+  const found = ENV_PHASES.find((p) => p.key === phaseKey);
+  return found ? found.element : null;
+}
+
+// Whether a given environment element supports or drains the person,
+// reusing the same favorable/unfavorable partition as the 喜用神 panel —
+// no new classification logic, just a new reference point.
+function environmentFit(envElement, favorableInfo) {
+  return favorableInfo.favorable.includes(envElement) ? 'supportive' : 'adverse';
 }
 
 // --- app.js ---
@@ -1452,23 +1731,59 @@ function renderDaYun(dy, pillars) {
   ).join('');
 
   const fav = daYunFavorability(dy, pillars);
+  const strength = fav[0].strength;
+  const favorableLabel = strength.isStrong ? '食伤/财/官杀 (output/wealth/pressure)' : '印/比劫 (resource/peer)';
+  const strengthHtml = `<p><strong>身${strength.isStrong ? '强 Strong' : '弱 Weak'} Day Master</strong>
+    <span class="caveat-inline">(得令 season: ${strength.deLing ? '✓' : '✗'},
+    得地 rooted: ${strength.deDi ? '✓' : '✗'},
+    得势 stem support: ${strength.deShi ? '✓' : '✗'} — ${[strength.deLing, strength.deDi, strength.deShi].filter(Boolean).length}/3)</span>
+    — favorable elements for the life-cycle chart below: ${favorableLabel}.</p>`;
+
   const maxAbs = Math.max(1, ...fav.map((f) => Math.abs(f.score)));
   const bars = fav.map((f) => {
     const cls = f.score > 0.5 ? 'bar-favorable' : f.score < -0.5 ? 'bar-unfavorable' : 'bar-neutral';
     const heightPct = Math.max(8, Math.round((Math.abs(f.score) / maxAbs) * 100));
     const flags = (f.clash ? ' 冲' : '') + (f.harmony ? ' 合' : '');
+    const agreeIcon = { agree: '✓', tension: '⚠', neutral: '–' }[f.agreement.level];
     return `<div class="dayun-bar-col">
       <div class="dayun-bar-track"><div class="dayun-bar ${cls}" style="height:${heightPct}%"></div></div>
       <div class="dayun-bar-label">${f.startAge}<br>${f.pillar.label}${flags}</div>
+      <div class="dayun-stage-tag">${f.stage}</div>
+      <div class="dayun-agreement agreement-${f.agreement.level}" title="${f.agreement.label}">${agreeIcon}</div>
     </div>`;
   }).join('');
 
   return `<p><strong>大运 Da Yun</strong> (${dy.forward ? '顺排 forward' : '逆排 backward'},
     起运 starts at age ${dy.startingAge.years}y${dy.startingAge.months}m, via ${dy.startingAge.jieName})</p>
     <table class="dayun-table"><tr>${rows}</tr></table>
+    ${strengthHtml}
     <p><strong>运势曲线 Life-cycle curve</strong>
-      <span class="caveat-inline">(favorability of each decade vs. Day Master — 生扶/克泄 + 冲/合, same scoring style as elsewhere; a heuristic, not a classical formula)</span></p>
+      <span class="caveat-inline">(bar height/color: favorability of each decade's stem + weighted hidden
+      branch-stems vs. what a ${strength.isStrong ? 'strong' : 'weak'} Day Master needs, plus 冲/合 vs. the day
+      pillar — a heuristic, not a classical formula. Gray tag: 十二长生, the Day Master's own birth-to-death
+      vitality cycle — a SEPARATE classical lens that doesn't always agree with the bar. Bottom icon: whether the
+      two lenses agree (✓), disagree (⚠ — treat with extra caution, tested against 4 real cases and this happens
+      often enough to matter), or one/both are near-neutral (–). This does not try to resolve disagreements —
+      that's real practitioner judgment, not a formula.)</span></p>
     <div class="dayun-chart">${bars}</div>`;
+}
+
+function renderElementRow(el) {
+  return `<li>${elementSpan(el, el)} — ${ELEMENT_DIRECTION[el]}, ${ELEMENT_COLOR_NAME[el]}, ${ELEMENT_SEASON_NAME[el]}
+    <br><span class="caveat-inline">${ELEMENT_CAREER_THEME[el]}</span></li>`;
+}
+
+function renderRemedies(pillars) {
+  const { favorable, unfavorable } = favorableElementsFor(pillars);
+  return `<p><strong>喜用神建议 Favorable-element suggestions</strong>
+    <span class="caveat-inline">(direction/color/season are bedrock Wu Xing correspondences; career themes are
+    illustrative, not a fixed convention — sources vary. "Reduce exposure to," not "avoid entirely.")</span></p>
+    <div class="remedies-cols">
+      <div><strong>喜 Lean toward</strong><ul>${favorable.map(renderElementRow).join('')}</ul></div>
+      <div><strong>忌 Reduce exposure to</strong><ul>${unfavorable.map(renderElementRow).join('')}</ul></div>
+    </div>
+    <p class="caveat">The most actionable lever is still timing, not environment — use the 时刻/Moment panel
+    above to check whether a candidate date's dominant elements lean toward your favorable set.</p>`;
 }
 
 function elementSpan(text, element) {
@@ -1566,6 +1881,8 @@ document.getElementById('birth-form').addEventListener('submit', (ev) => {
   currentPersonJdUtc = localToUtcJD(Y, M, D, hour, minute, tz);
   const dy = daYunSequence(currentPersonPillars, currentPersonJdUtc, gender === 'male');
   document.getElementById('person-result').insertAdjacentHTML('beforeend', renderDaYun(dy, currentPersonPillars));
+  document.getElementById('person-result').insertAdjacentHTML('beforeend', renderRemedies(currentPersonPillars));
+  renderEnvironmentFit();
   if (pendingRectifiedInfo) {
     document.getElementById('person-result').insertAdjacentHTML('afterbegin', renderRectifiedBadge(pendingRectifiedInfo));
     pendingRectifiedInfo = null;
@@ -1698,6 +2015,71 @@ document.getElementById('moment-now').addEventListener('click', () => {
     tz
   );
   computeMoment();
+});
+
+// --- Environment Cycle (experimental, opt-in, off by default) ------------
+let environmentEntries = [{ label: '', phase: 'expansion' }];
+
+function renderEnvironmentRows() {
+  const container = document.getElementById('environment-rows');
+  container.innerHTML = environmentEntries.map((entry, idx) => `
+    <div class="env-row" data-idx="${idx}">
+      <input type="text" class="env-label" placeholder="e.g. Overall market, Tobacco sector" value="${entry.label}">
+      <select class="env-phase">
+        ${ENV_PHASES.map((p) => `<option value="${p.key}" ${p.key === entry.phase ? 'selected' : ''}>${p.label} (${p.element})</option>`).join('')}
+      </select>
+      ${environmentEntries.length > 1 ? '<button type="button" class="env-remove">✕</button>' : ''}
+    </div>`).join('');
+
+  container.querySelectorAll('.env-row').forEach((row) => {
+    const idx = Number(row.dataset.idx);
+    row.querySelector('.env-label').addEventListener('input', (e) => {
+      environmentEntries[idx].label = e.target.value;
+      renderEnvironmentFit();
+    });
+    row.querySelector('.env-phase').addEventListener('change', (e) => {
+      environmentEntries[idx].phase = e.target.value;
+      renderEnvironmentFit();
+    });
+    const removeBtn = row.querySelector('.env-remove');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        environmentEntries.splice(idx, 1);
+        renderEnvironmentRows();
+        renderEnvironmentFit();
+      });
+    }
+  });
+}
+
+function renderEnvironmentFit() {
+  const resultEl = document.getElementById('environment-fit-result');
+  if (!document.getElementById('environment-enable').checked) return;
+  if (!currentPersonPillars) {
+    resultEl.innerHTML = '<p class="caveat">Compute the person\'s Four Pillars above to see environment fit.</p>';
+    return;
+  }
+  const favInfo = favorableElementsFor(currentPersonPillars);
+  const rows = environmentEntries.filter((e) => e.label.trim()).map((e) => {
+    const el = envPhaseElement(e.phase);
+    const fit = environmentFit(el, favInfo);
+    const phaseLabel = ENV_PHASES.find((p) => p.key === e.phase).label;
+    return `<li>${e.label}: ${phaseLabel} (${elementSpan(el, el)}) &rarr;
+      <span class="env-fit-badge env-fit-${fit}">${fit === 'supportive' ? '有利 supportive' : '不利 adverse'}</span></li>`;
+  });
+  resultEl.innerHTML = rows.length
+    ? `<ul>${rows.join('')}</ul>`
+    : '<p class="caveat">Add a scope with a label to see its fit.</p>';
+}
+
+document.getElementById('environment-enable').addEventListener('change', (ev) => {
+  document.getElementById('environment-body').style.display = ev.target.checked ? 'block' : 'none';
+  if (ev.target.checked) { renderEnvironmentRows(); renderEnvironmentFit(); }
+});
+
+document.getElementById('environment-add-row').addEventListener('click', () => {
+  environmentEntries.push({ label: '', phase: 'expansion' });
+  renderEnvironmentRows();
 });
 
 // --- Scan for a better time ------------------------------------------------
