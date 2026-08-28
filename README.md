@@ -303,6 +303,43 @@ the element side (未's hidden 乙木 root). Reconciling two classical lenses
 that disagree is real practitioner judgment, not something to fake as one
 number — so both are shown side by side instead.
 
+## Fixed: Scan was optimizing for the wrong goal
+
+A real design bug, not a computation error: Scan ranked candidates by the
+BaZi-only score, but once a hexagram is cast, the actual "is this a good
+time to decide" signal is the Net Read Total (which only gives that BaZi
+score 20% weight). So the top-ranked Scan result could still come out
+negative on Net Read once a hexagram was cast for it — the "better" time
+was never actually better for the decision being made. Caught by Nian
+testing the full flow end to end (cast → scan → use → recast), not by
+inspection.
+
+Fixed: Scan now casts a full hexagram (using the 决定类型 selected in the
+Environment panel) for every candidate and ranks by 综合解读总分 Net Read
+Total, the same metric the initial cast is judged by. The BaZi score is
+still shown alongside for reference, but no longer drives the ranking.
+Performance checked at the max horizon (721 candidates, full hexagram
+each) — 108ms, no concern. "Use" now unconditionally re-casts the
+hexagram panel so what you see matches exactly what the candidate was
+ranked by, rather than relying on it having already been cast once.
+Column order in the results table was also reordered so Net Read Total
+sits immediately left of the "Use" button — reading left-to-right, it's
+the summary a person arrives at right before the button that acts on it.
+
+## UX: two different "scores," now labeled distinctly
+
+The Scan/Moment panels' score (`compareMomentToPerson` — BaZi-only:
+day-branch clash/harmony + five-element support) and the Net Read's total
+(`synthesizeNetRead` — a hexagram-specific composite that only gives that
+same BaZi score 20% weight) were both just labeled "Score." Picking the
+top-scoring Scan candidate and then casting a hexagram for it can land on
+a wildly different Net Read total — confirmed by direct reproduction to
+be expected (the two scores are computed from mostly non-overlapping
+signals), not a bug, but the shared label made it read as one. Relabeled:
+**八字择时分 BaZi Timing Score** wherever `compareMomentToPerson` shows up,
+**综合解读总分 Net Read Total** for the hexagram composite, with an
+explicit cross-reference note in both places.
+
 ## UX: keeping panels in sync
 
 An action in one panel that visibly changes a *different* panel needs
@@ -443,6 +480,59 @@ sections above for full detail):
 - The 决定类型 (decision-type) dropdown moved from the hexagram panel to
   the top of the Environment panel, so choosing it primes which
   environment scopes actually make sense to describe.
+
+## Research: multi-person decisions (not yet built)
+
+Motivating question: a joint investment account where one spouse's BaZi
+says "buy" and the other's says "hold," or a two-partner project where
+one reads "go" and the other "no-go" — what does the tradition actually
+say? Researched (not implemented) via a background agent; findings below,
+confidence levels as reported.
+
+**世/應 (Shi/Ying) is the classically direct mechanism for two-party
+*event* questions — not comparing two separate personal readings.**
+世为自己，应作他人 ("Shi is oneself, Ying serves as the other party") — for
+a relational question (partnership, joint purchase), classical practice
+casts ONE hexagram; 世/应 positions fall out of the hexagram's own
+structure (already computed by `findPalaceAndShiYing` in this codebase),
+and the *relationship* between them (应生世/世生应/clash/combine/比和) is
+the signal. Caveat: 应 isn't always "the other person" — depends on
+question type; only applies when the question is genuinely relational.
+(High confidence on the core mechanism, corroborated across 黄金策 and
+multiple practitioner sources; moderate confidence on more granular
+partnership-specific gating rules like 入墓/逢空.)
+
+**合婚/合伙 (compatibility) is a separate classical question — a standing
+trait of the pair, not a per-moment score.** Compares two people's Day
+Pillars for stem/branch combine vs. clash, and checks whether each
+person's 喜用神 is *supplied* by the other's chart or *drained* by it.
+For partnerships specifically: a chart dominated by 比劫 (peer-element) is
+flagged as partnership-risky (it "robs" the wealth star). (High
+confidence on the day-pillar + 喜用神 mechanism; moderate on partnership-
+specific elaboration, which reads as modern practitioner synthesis rather
+than named-classical-text canon.)
+
+**A real gap, found honestly: there's a documented "whose reading wins"
+rule for marriage date selection (以女命为主，男命作参考 — the woman's
+favorable-element day is primary, the man's chart just needs to avoid his
+own hostile days), but no equivalent precedence rule surfaced anywhere for
+co-equal business partnerships.** That's culturally specific to the
+gendered marriage convention and doesn't generalize — worth NOT porting
+that rule over as if it were a generic "primary party" answer.
+
+**Candidate directions for later** (design discussion, not committed):
+1. A joint-venture mode: cast one hexagram, read 世 (whoever's decision it
+   primarily is) vs. 应 (the counterpart) — reuses existing machinery.
+2. A standing two-person compatibility check (day-pillar combine/clash +
+   mutual 喜用神 supply/drain + 比劫 exposure) — needs one new verified
+   piece not yet built: 天干五合 (stem combinations: 甲己合化土, 乙庚合化金,
+   丙辛合化水, 丁壬合化木, 戊癸合化火) — bedrock-confidence classical fact,
+   still worth a quick verify pass before coding, same discipline as
+   everything else here.
+3. For resolving two people's individually-conflicting personal timing
+   reads specifically: no clean classical precedent for co-equal
+   relationships exists to lean on — any tiebreaker here would need to be
+   an explicitly-labeled modern stand-in, not presented as classical.
 
 ## Next steps
 

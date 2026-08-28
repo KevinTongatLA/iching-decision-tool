@@ -390,9 +390,10 @@ tr.moving-line .yao-yin span { background: #b8860b; }
   <section class="panel" id="scan-panel">
     <h2>寻找更好时机 — Scan for a better time</h2>
     <p class="caveat">
-      Requires the person's Four Pillars computed above. Scans forward from the Moment panel's
-      current date/time and ranks candidates by the composite score below (see the "关于评分"
-      note under the results) — a starting point for comparison, not a verdict.
+      Requires the person's Four Pillars computed above. Casts a hexagram for every candidate moment (using the
+      决定类型 selected in the Environment panel) and ranks by 综合解读总分 Net Read Total — the same metric that
+      judges whether "now" is a good time to decide — not just the underlying BaZi score. A starting point for
+      comparison, not a verdict.
     </p>
     <div class="field-row">
       <label>粒度 Granularity
@@ -1839,8 +1840,10 @@ function renderJieqi(result) {
 
 function renderCompare(cmp) {
   return `
-    <p><strong>与命主比较 vs. Person — score: ${cmp.score}</strong>
-      <span class="caveat-inline">(illustrative composite, see 关于评分 note below)</span></p>
+    <p><strong>八字择时分 BaZi Timing Score (vs. Person): ${cmp.score}</strong>
+      <span class="caveat-inline">(BaZi-only — day-branch clash/harmony + five-element support/drain. Does NOT
+      include the hexagram/用神 analysis below — that's a separate "Net Read Total," not the same number. See
+      关于评分 note below.)</span></p>
     <p>支持/耗泄 support ${cmp.rel.supportive} / drain ${cmp.rel.draining}
       &nbsp;|&nbsp; 日柱合 day-branch harmony: ${cmp.dayHarmony ? '是 yes (+2)' : '否 no'}
       &nbsp;|&nbsp; 日柱冲 day-branch clash: ${cmp.dayClash ? '是 yes (−3)' : '否 no'}
@@ -2111,20 +2114,33 @@ document.getElementById('scan-btn').addEventListener('click', () => {
   const stepHours = granularity === 'day' ? 24 : 1;
   const maxHorizon = granularity === 'day' ? 365 : 720;
   const horizon = Math.min(Math.max(1, Number(document.getElementById('scan-horizon').value)), maxHorizon);
+  const category = document.getElementById('yong-shen-category').value;
 
+  // Rank by the SAME metric that judges whether "now" is a good time to
+  // decide — the hexagram-aware Net Read total — not the BaZi-only score
+  // alone. An earlier version sorted by the BaZi score, which meant the
+  // "best" scanned candidate could still come out negative once a
+  // hexagram was cast for it: a real design bug (scan optimizing for a
+  // different goal than the decision itself), not a computation error.
   const candidates = [];
   for (let i = 0; i <= horizon; i++) {
     const t = addHoursToLocal(start.Y, start.M, start.D, start.hour, start.minute, i * stepHours);
-    const pillars = computeFourPillars(t.year, t.month, t.day, t.hour, t.minute, start.tz);
+    const f = { Y: t.year, M: t.month, D: t.day, hour: t.hour, minute: t.minute, tz: start.tz };
+    const { hex, pillars } = computeHexagramForMoment(f);
     const cmp = compareMomentToPerson(currentPersonPillars, pillars);
-    candidates.push({ t, pillars, cmp });
+    const yongShenPositions = findYongShenLines(hex.present, category);
+    const netRead = synthesizeNetRead(hex, yongShenPositions, pillars.day, currentPersonPillars, cmp);
+    candidates.push({ t, pillars, cmp, hex, netRead });
   }
-  candidates.sort((a, b) => b.cmp.score - a.cmp.score);
+  candidates.sort((a, b) => b.netRead.total - a.netRead.total);
   const top = candidates.slice(0, 10);
 
   const pad = (n) => String(n).padStart(2, '0');
-  let html = `<p class="caveat">Scanned ${candidates.length} candidate(s) (horizon=${horizon}), showing the top ${top.length} by score.</p>`;
-  html += '<table class="scan-table"><tr><th>时刻 DateTime</th><th>四柱</th><th>评分 Score</th><th>关系 Flags</th><th></th></tr>';
+  let html = `<p class="caveat">Scanned ${candidates.length} candidate(s) (horizon=${horizon}), showing the top ${top.length} by
+    综合解读总分 Net Read Total for "${document.getElementById('yong-shen-category').selectedOptions[0].textContent}"
+    — the same hexagram-aware metric used above, so the top result here should actually be usable, not just
+    BaZi-favorable. 八字择时分 BaZi Timing Score is still shown alongside for reference.</p>`;
+  html += '<table class="scan-table"><tr><th>时刻 DateTime</th><th>四柱</th><th>卦 Hexagram</th><th>八字择时分 BaZi</th><th>关系 Flags</th><th>综合解读总分 Net Read</th><th></th></tr>';
   top.forEach((c, idx) => {
     const dt = `${c.t.year}-${pad(c.t.month)}-${pad(c.t.day)} ${pad(c.t.hour)}:${pad(c.t.minute)}`;
     const pillarsStr = `${c.pillars.year.label} ${c.pillars.month.label} ${c.pillars.day.label} ${c.pillars.hour.label}`;
@@ -2133,14 +2149,18 @@ document.getElementById('scan-btn').addEventListener('click', () => {
       c.cmp.dayClash ? '冲' : null,
       c.cmp.yearClash ? '日冲年支' : null,
     ].filter(Boolean).join(' ') || '—';
+    // Net Read sits immediately before the Use button, on purpose — it's
+    // the summary metric a person reads left-to-right to arrive at, right
+    // before the button that acts on it (Nian's suggestion).
     html += `<tr>
-      <td>${dt}</td><td>${pillarsStr}</td><td>${c.cmp.score}</td><td>${flags}</td>
+      <td>${dt}</td><td>${pillarsStr}</td><td>${c.hex.presentName.fullLabel}</td>
+      <td>${c.cmp.score}</td><td>${flags}</td><td><strong>${c.netRead.total}</strong></td>
       <td><button class="use-btn" data-idx="${idx}" type="button">使用 Use</button></td>
     </tr>`;
   });
   html += '</table>';
-  html += `<p class="caveat">关于评分 About the score: an illustrative composite (five-element
-    support/drain relative to the person's Day Master, plus 日柱六合/六冲 and a day-vs-year-branch
+  html += `<p class="caveat">关于评分 About the 八字择时分 BaZi Timing Score: an illustrative composite
+    (five-element support/drain relative to the person's Day Master, plus 日柱六合/六冲 and a day-vs-year-branch
     六冲 check — not the traditional 冲太岁, which is year-vs-year). Directionally classical, but
     the weights are not from a canonical text — treat ranking as a starting point, not a
     verdict.</p>`;
@@ -2151,7 +2171,8 @@ document.getElementById('scan-btn').addEventListener('click', () => {
       const c = top[Number(btn.dataset.idx)];
       fillMomentFieldsFromDate(c.t, start.tz);
       computeMoment();
-      scrollToAndFlash(document.getElementById('moment-panel'));
+      renderHexagram(); // guarantee the panel shows the exact hexagram/Net Read this candidate was ranked by
+      scrollToAndFlash(document.getElementById('hexagram-panel'));
     });
   });
 });
@@ -2243,10 +2264,12 @@ function renderNetRead(net) {
   return `<div class="net-read ${leaningClass}">
     <p class="net-narrative">${net.narrative}</p>
     <ul class="signal-list">${rows}</ul>
-    <p class="net-total">Total: ${net.total > 0 ? '+' : ''}${net.total} → <strong>${net.leaning}</strong></p>
+    <p class="net-total">综合解读总分 Net Read Total: ${net.total > 0 ? '+' : ''}${net.total} → <strong>${net.leaning}</strong></p>
     <p class="caveat">This is my own composite for showing the reasoning, not a classical formula — the individual
       signals (支持/生扶, 冲/合) are classical, the point weights used to add them up are illustrative.
-      Treat it as a starting read to compare against your own, not a verdict.</p>
+      Treat it as a starting read to compare against your own, not a verdict. Not the same number as the
+      八字择时分 BaZi Timing Score shown in the Moment/Scan panels above — this total folds in hexagram-specific
+      用神 signals too, and only gives the BaZi score itself 20% weight, so the two can diverge a lot.</p>
   </div>`;
 }
 
