@@ -298,6 +298,66 @@ tr.moving-line .yao-yin span { background: #b8860b; }
     </div>
   </section>
 
+  <section class="panel" id="partner-panel">
+    <h2>伙伴 — Partner <span class="experimental-badge">OPTIONAL — extension to the solo reading</span></h2>
+    <p class="caveat">
+      Preserves the solo workflow above completely — off by default. If this is a joint decision (a spouse on a
+      shared account, a business partner on a shared project), add them here to see a directional nudge
+      (up/down/mixed) on top of your own reading, never a competing score. Needs their birth date; birth time is
+      optional (most people know a partner's birthday, not their exact hour — the tool degrades gracefully:
+      得地/得势 just skip the hour pillar rather than guessing it).
+    </p>
+    <label class="unknown-time-toggle">
+      <input type="checkbox" id="partner-enable"> 添加伙伴 Add a partner to this decision
+    </label>
+    <div id="partner-body" style="display:none">
+      <form id="partner-form">
+        <div class="field-row">
+          <label>伙伴出生日期 Partner's birth date
+            <input type="number" id="partner-year" placeholder="年 YYYY" value="1990" min="1" max="3000">
+            <input type="number" id="partner-month" placeholder="月 MM" value="1" min="1" max="12">
+            <input type="number" id="partner-day" placeholder="日 DD" value="1" min="1" max="31">
+          </label>
+        </div>
+        <div class="field-row">
+          <label>出生时间 Time (24h) — optional
+            <input type="number" id="partner-hour" placeholder="时 HH" value="12" min="0" max="23">
+            <input type="number" id="partner-minute" placeholder="分 mm" value="0" min="0" max="59">
+          </label>
+          <label style="display:inline-block; margin-left:0.8rem;">
+            <input type="checkbox" id="partner-time-unknown"> 时间未知 Time unknown
+          </label>
+        </div>
+        <div class="field-row">
+          <label>时区 Timezone
+            <input type="number" id="partner-tz" value="8" step="0.5" min="-12" max="14">
+          </label>
+        </div>
+        <div class="field-row">
+          <label>关系 Relationship to you
+            <select id="partner-relationship">
+              <option value="spouse">配偶 Spouse</option>
+              <option value="business">合伙人 Business partner</option>
+              <option value="other">其他 Other</option>
+            </select>
+          </label>
+        </div>
+        <div class="field-row">
+          <label>主导权 (optional, context only — not used in the calculation)
+            <select id="partner-dominance">
+              <option value="unspecified">未指定 Not specified</option>
+              <option value="me">我 Me</option>
+              <option value="them">对方 Them</option>
+              <option value="equal">差不多 Roughly equal</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">计算伙伴 Compute Partner</button>
+      </form>
+      <div id="partner-result" class="result"></div>
+    </div>
+  </section>
+
   <section class="panel" id="moment-panel">
     <h2>时刻 — Moment (default: now)</h2>
     <p class="caveat">
@@ -815,14 +875,20 @@ const SEASON_WANG = { 木: [2, 3], 火: [5, 6], 土: [1, 4, 7, 10], 金: [8, 9],
 // five-stage seasonal framework needed to do that correctly couldn't be
 // verified confidently in this session (a second search gave a materially
 // different, unverified definition) — flagged rather than guessed.
-function determineDayMasterStrength(pillars) {
+// hourKnown=false gracefully degrades 得地/得势 to year+day / year+month only
+// — for a second person (e.g. a partner) whose birth date is known but not
+// their exact hour, which is common (most people know a partner's birthday,
+// not their birth time). Default true preserves exact prior behavior for
+// every existing caller.
+function determineDayMasterStrength(pillars, hourKnown = true) {
   const dmElement = pillars.day.stemElement;
   const monthBranchIdx = BRANCHES.indexOf(pillars.month.branch);
 
   const deLing = SEASON_WANG[dmElement].includes(monthBranchIdx);
 
-  const rootBranchIdxs = [pillars.year.branch, pillars.day.branch, pillars.hour.branch]
-    .map((b) => BRANCHES.indexOf(b));
+  const rootBranches = [pillars.year.branch, pillars.day.branch];
+  if (hourKnown) rootBranches.push(pillars.hour.branch);
+  const rootBranchIdxs = rootBranches.map((b) => BRANCHES.indexOf(b));
   let rootWeight = 0;
   rootBranchIdxs.forEach((bIdx) => {
     HIDDEN_STEMS[bIdx].forEach((h) => {
@@ -831,8 +897,9 @@ function determineDayMasterStrength(pillars) {
   });
   const deDi = rootWeight > 0;
 
-  const otherStemIdxs = [pillars.year.stem, pillars.month.stem, pillars.hour.stem]
-    .map((s) => STEMS.indexOf(s));
+  const otherStems = [pillars.year.stem, pillars.month.stem];
+  if (hourKnown) otherStems.push(pillars.hour.stem);
+  const otherStemIdxs = otherStems.map((s) => STEMS.indexOf(s));
   const supportCount = otherStemIdxs.filter((sIdx) => {
     const el = STEM_ELEMENT[sIdx];
     return el === dmElement || GENERATES[el] === dmElement;
@@ -840,7 +907,7 @@ function determineDayMasterStrength(pillars) {
   const deShi = supportCount > 0;
 
   const passCount = [deLing, deDi, deShi].filter(Boolean).length;
-  return { deLing, deDi, deShi, rootWeight, supportCount, isStrong: passCount >= 2 };
+  return { deLing, deDi, deShi, rootWeight, supportCount, isStrong: passCount >= 2, hourKnown };
 }
 
 // --- 十二长生 (Twelve Growth Stages) --------------------------------------
@@ -917,9 +984,9 @@ const ELEMENT_CAREER_THEME = {
 // Given a person's pillars, the concrete elements (not roles) that are
 // favorable/unfavorable per their 身强身弱 — reuses determineDayMasterStrength,
 // just translated from roles back to absolute elements for display.
-function favorableElementsFor(pillars) {
+function favorableElementsFor(pillars, hourKnown = true) {
   const dm = pillars.day.stemElement;
-  const strength = determineDayMasterStrength(pillars);
+  const strength = determineDayMasterStrength(pillars, hourKnown);
   const roleToElement = {
     peer: dm,
     resource: reverseLookup(GENERATES, dm),
@@ -944,6 +1011,15 @@ function fiveElementBalance(pillars) {
   const dayMasterElement = pillars.day.stemElement;
   const rel = classifyElementsRelativeTo(pillarsToElementList(pillars), dayMasterElement);
   return { dayMasterElement, ...rel };
+}
+
+// --- 天干五合 (stem combinations) — verified via search: 甲己合化土,
+// 乙庚合化金, 丙辛合化水, 丁壬合化木, 戊癸合化火. Stem i combines with
+// stem (i+5)%10, symmetric. NOTE: classical 合化 (actually transforming
+// element) needs seasonal/support conditions not modeled here — treated
+// simply as a binary "combine = affinity" signal, not a full transformation.
+function stemCombinePartnerIdx(stemIdx) {
+  return (stemIdx + 5) % 10;
 }
 
 // --- Branch relations: 六合 (six harmonies) and 六冲 (six clashes) --------
@@ -1700,6 +1776,95 @@ function environmentFit(envElement, favorableInfo) {
   return favorableInfo.favorable.includes(envElement) ? 'supportive' : 'adverse';
 }
 
+// --- partner.js ---
+// partner.js — optional, opt-in extension to the SOLO reading: does adding
+// a second person (spouse, business partner) nudge the decision's outlook
+// up, down, or leave it unclear, RELATIVE to the solo reading — never a
+// competing numeric score. Deliberately rule-based (a small decision
+// table over discrete yes/no signals), not weighted arithmetic — see
+// conversation/skill notes on why an explicit score was rejected here.
+//
+// Two classical signal families, both already partly built for other
+// features in this tool:
+//   - Day-pillar relationship (天干合/六合/六冲) between the two people's
+//     day pillars — the core 合婚 day-pillar check.
+//   - Mutual 喜用神 supply/drain — does the partner's Day Master element
+//     fall in the main person's favorable set (or vice versa)?
+// Relationship type sets a DEFAULT LEAN when no concrete signal fires —
+// 配偶/spouse leans ▲ by default (a harmonious marriage generally helps a
+// joint effort); 合伙人/partner has no default lean (Nian: "the effect is
+// less obvious" for general partnerships) — matching real-world intuition
+// stated in conversation, not a claim from a classical text.
+
+const PARTNER_RELATIONSHIP_TYPES = {
+  spouse: { label: '配偶 Spouse', defaultLean: 'up' },
+  business: { label: '合伙人 Business partner', defaultLean: 'neutral' },
+  other: { label: '其他 Other', defaultLean: 'neutral' },
+};
+
+// Day-pillar relationship between two people's day pillars.
+function dayPillarRelationship(mainPillars, partnerPillars) {
+  const mainStemIdx = STEMS.indexOf(mainPillars.day.stem);
+  const partnerStemIdx = STEMS.indexOf(partnerPillars.day.stem);
+  const mainBranchIdx = BRANCHES.indexOf(mainPillars.day.branch);
+  const partnerBranchIdx = BRANCHES.indexOf(partnerPillars.day.branch);
+
+  return {
+    stemCombine: stemCombinePartnerIdx(mainStemIdx) === partnerStemIdx,
+    branchHarmony: BRANCH_SIX_HARMONY_PARTNER[mainBranchIdx] === partnerBranchIdx,
+    branchClash: branchClashPartnerIdx(mainBranchIdx) === partnerBranchIdx,
+  };
+}
+
+// Does the partner's Day Master element fall in the main person's
+// favorable set (supplies them) or unfavorable set (drains them)? And the
+// reverse. Reuses favorableElementsFor directly — no new classification.
+function mutualFavorability(mainPillars, partnerPillars, mainHourKnown, partnerHourKnown) {
+  const mainFav = favorableElementsFor(mainPillars, mainHourKnown);
+  const partnerFav = favorableElementsFor(partnerPillars, partnerHourKnown);
+  const partnerElement = partnerPillars.day.stemElement;
+  const mainElement = mainPillars.day.stemElement;
+  return {
+    partnerSuppliesMain: mainFav.favorable.includes(partnerElement),
+    partnerDrainsMain: mainFav.unfavorable.includes(partnerElement),
+    mainSuppliesPartner: partnerFav.favorable.includes(mainElement),
+    mainDrainsPartner: partnerFav.unfavorable.includes(mainElement),
+  };
+}
+
+// The directional badge — a small rule table over discrete signals, never
+// summed into a score. relationshipType is one of PARTNER_RELATIONSHIP_TYPES'
+// keys.
+function partnerEffect(mainPillars, partnerPillars, relationshipType, mainHourKnown = true, partnerHourKnown = true) {
+  const dayRel = dayPillarRelationship(mainPillars, partnerPillars);
+  const mutual = mutualFavorability(mainPillars, partnerPillars, mainHourKnown, partnerHourKnown);
+
+  const positiveSignals = [];
+  const negativeSignals = [];
+  if (dayRel.stemCombine) positiveSignals.push('日柱天干合 day-pillar stems combine (甲己合-style affinity)');
+  if (dayRel.branchHarmony) positiveSignals.push('日柱六合 day-pillar branches harmonize');
+  if (dayRel.branchClash) negativeSignals.push('日柱六冲 day-pillar branches clash');
+  if (mutual.partnerSuppliesMain) positiveSignals.push('对方五行生扶你的喜用神 partner\'s element supports your favorable elements');
+  if (mutual.partnerDrainsMain) negativeSignals.push('对方五行耗泄你的喜用神 partner\'s element drains/opposes your favorable elements');
+
+  const relType = PARTNER_RELATIONSHIP_TYPES[relationshipType] || PARTNER_RELATIONSHIP_TYPES.other;
+  let direction;
+  if (negativeSignals.length && !positiveSignals.length) direction = 'down';
+  else if (positiveSignals.length && !negativeSignals.length) direction = 'up';
+  else if (positiveSignals.length && negativeSignals.length) direction = 'mixed';
+  else direction = relType.defaultLean; // no concrete signal either way — fall back to relationship-type default
+
+  return {
+    direction, // 'up' | 'down' | 'mixed' | 'neutral'
+    positiveSignals,
+    negativeSignals,
+    dayRel,
+    mutual,
+    usedDefaultLean: !positiveSignals.length && !negativeSignals.length,
+    relationshipLabel: relType.label,
+  };
+}
+
 // --- app.js ---
 // app.js — DOM wiring for the BaZi pilot. No framework, no build step.
 
@@ -2020,6 +2185,83 @@ document.getElementById('moment-now').addEventListener('click', () => {
   computeMoment();
 });
 
+// --- Partner (optional, opt-in extension to the solo reading) ------------
+let currentPartnerPillars = null;
+let currentPartnerHourKnown = true;
+
+document.getElementById('partner-enable').addEventListener('change', (ev) => {
+  document.getElementById('partner-body').style.display = ev.target.checked ? 'block' : 'none';
+  if (!ev.target.checked) {
+    currentPartnerPillars = null; // disabling removes the extension's effect entirely
+    if (document.getElementById('hexagram-result').innerHTML) renderHexagram();
+  }
+});
+
+document.getElementById('partner-time-unknown').addEventListener('change', (ev) => {
+  document.getElementById('partner-hour').disabled = ev.target.checked;
+  document.getElementById('partner-minute').disabled = ev.target.checked;
+});
+
+function renderPartnerSummary(pillars, hourKnown) {
+  const fav = favorableElementsFor(pillars, hourKnown);
+  const favList = fav.favorable.map((el) => elementSpan(el, el)).join(' ');
+  return `${renderPillarsTable(pillars)}
+    <p><strong>日主 Day Master:</strong> ${elementSpan(pillars.day.stemElement, pillars.day.stemElement)}
+      &nbsp;|&nbsp; 身${fav.strength.isStrong ? '强' : '弱'} ${fav.strength.isStrong ? 'Strong' : 'Weak'}
+      ${hourKnown ? '' : '<span class="caveat-inline">(时辰未知 — 得地/得势 excludes hour)</span>'}</p>
+    <p><strong>喜用神 Favorable:</strong> ${favList}</p>`;
+}
+
+document.getElementById('partner-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const Y = Number(document.getElementById('partner-year').value);
+  const M = Number(document.getElementById('partner-month').value);
+  const D = Number(document.getElementById('partner-day').value);
+  const timeUnknown = document.getElementById('partner-time-unknown').checked;
+  const hour = timeUnknown ? 12 : Number(document.getElementById('partner-hour').value);
+  const minute = timeUnknown ? 0 : Number(document.getElementById('partner-minute').value);
+  const tz = Number(document.getElementById('partner-tz').value);
+
+  currentPartnerPillars = computeFourPillars(Y, M, D, hour, minute, tz);
+  currentPartnerHourKnown = !timeUnknown;
+  document.getElementById('partner-result').innerHTML = renderPartnerSummary(currentPartnerPillars, currentPartnerHourKnown);
+  if (document.getElementById('hexagram-result').innerHTML) renderHexagram();
+});
+
+function renderPartnerEffect() {
+  if (!document.getElementById('partner-enable').checked || !currentPersonPillars || !currentPartnerPillars) return '';
+  const relationshipType = document.getElementById('partner-relationship').value;
+  const dominance = document.getElementById('partner-dominance').value;
+  const effect = partnerEffect(currentPersonPillars, currentPartnerPillars, relationshipType, true, currentPartnerHourKnown);
+
+  const icon = { up: '▲', down: '▼', mixed: '– / ▲▼', neutral: '–' }[effect.direction];
+  const cls = { up: 'net-favorable', down: 'net-cautious', mixed: 'net-mixed', neutral: 'net-mixed' }[effect.direction];
+  const leadingNote = effect.usedDefaultLean
+    ? `<span class="caveat-inline">(no concrete day-pillar/element signal fired — falling back to the ${effect.relationshipLabel} default lean, not a computed result)</span>`
+    : '';
+
+  const signalRows = [
+    ...effect.positiveSignals.map((s) => `<li class="sig-pos">+ ${s}</li>`),
+    ...effect.negativeSignals.map((s) => `<li class="sig-neg">− ${s}</li>`),
+  ].join('') || '<li class="sig-neutral">No day-pillar or mutual-element signal fired either way.</li>';
+
+  let dominanceNote = '';
+  if (dominance === 'them') {
+    dominanceNote = `<p class="caveat">You indicated your partner tends to have more say here — their own day master
+      (${elementSpan(currentPartnerPillars.day.stemElement, currentPartnerPillars.day.stemElement)}) and favorable
+      elements above are worth extra weight in your own judgment.</p>`;
+  }
+
+  return `<div class="net-read ${cls}">
+    <p class="net-narrative"><strong>伙伴影响 Partner Effect</strong> (${effect.relationshipLabel}): ${icon} ${leadingNote}</p>
+    <ul class="signal-list">${signalRows}</ul>
+    ${dominanceNote}
+    <p class="caveat">Directional only, relative to your solo reading above — deliberately not a score. The
+      day-pillar/element signals are classical; treating them as a small yes/no table instead of adding up points
+      is a design choice to avoid pretending to more precision than this comparison actually has.</p>
+  </div>`;
+}
+
 // --- Environment Cycle (experimental, opt-in, off by default) ------------
 let environmentEntries = [{ label: '', phase: 'expansion' }];
 
@@ -2296,6 +2538,7 @@ function renderHexagram() {
 
   html += `<h3>综合解读 Net Read</h3>`;
   html += renderNetRead(netRead);
+  html += renderPartnerEffect(); // no-op (returns '') unless partner is enabled and computed
 
   if (currentPersonPillars) {
     const presentRel = personalizeHexagram(hex.present, currentPersonPillars).rel;

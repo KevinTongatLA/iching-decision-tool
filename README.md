@@ -408,6 +408,41 @@ describes, e.g. a market, an industry, a project's funding climate.
   precision when combining things that don't have a verified combination
   rule.
 
+## 伙伴 Partner — optional extension to the solo reading
+
+Implements the multi-person design discussed above (see "Research:
+multi-person decisions"), scoped down from the original "modifier shifts
+the main person's score" proposal after discussion surfaced a real issue
+with it: it would have made the tool give a different verdict depending on
+who's designated "main," even for symmetric decisions (a joint account)
+where that shouldn't matter. What shipped instead:
+
+- **Off by default, zero effect on the solo workflow** — same pattern as
+  Environment Cycle. Enabling it adds a partner's birth data and computes
+  their own pillars/身强身弱/喜用神 independently (never merged into the
+  main person's numbers).
+- **Birth time is optional for the partner** — `determineDayMasterStrength`
+  and `favorableElementsFor` now take an `hourKnown` flag (default `true`,
+  so every existing caller is unaffected) that skips the hour pillar in
+  得地/得势 when it's unknown, rather than requiring the same rectification
+  workflow built for the primary person. Matches the real-world case
+  (people usually know a partner's birthday, not their exact hour).
+- **伙伴影响 Partner Effect is a directional badge (▲/▼/mixed/–), never a
+  score** — deliberately a small rule table over discrete signals (day-
+  pillar 天干合/六合/六冲 between the two people's day pillars, mutual
+  喜用神 supply/drain), not weighted arithmetic. New verified piece:
+  天干五合 (stem combinations — 甲己合化土/乙庚合化金/丙辛合化水/丁壬合化木/
+  戊癸合化火), confirmed via search before coding.
+- **Relationship-type-aware default lean, not classical claim, applied
+  only when no concrete signal fires**: 配偶/spouse defaults ▲ (a
+  harmonious marriage generally helps a joint effort — Nian's stated real-
+  world intuition, not sourced from a classical text); 合伙人/business
+  partner has no default lean at all (purely signal-driven, matching "the
+  effect is less obvious" for general partnerships).
+- **"Who has more say" is a self-reported context note, never a hidden
+  weight** — deliberately not inferred from BaZi (the popular 身强=
+  assertive-temperament shorthand is too soft/unverified to build on).
+
 ## Publishing a copy — bundling in one file
 
 `js/*.js` + `index.html` + `style.css` stay as the working source — don't
